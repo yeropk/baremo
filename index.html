@@ -354,70 +354,86 @@
         nextStep(7);
     }
 
-    async function guardarEnNube() {
-        const id = document.getElementById('u_id').value.trim();
-        const spec = document.getElementById('u_spec').value.trim();
-        const esc = document.getElementById('escala').value;
+   async function guardarEnNube() {
+    const id = document.getElementById('u_id').value.trim();
+    const spec = document.getElementById('u_spec').value.trim();
+    const esc = document.getElementById('escala').value;
+    
+    if(!id || !spec) return alert("Rellena el ID y la Especialidad.");
+
+    const btn = document.getElementById('btn-save');
+    btn.innerText = "Sincronizando con la nube...";
+    btn.disabled = true;
+
+    try {
+        // 1. Intentamos leer lo que hay
+        let res = await fetch(JSON_DATABASE_URL);
+        let listaActual = [];
         
-        if(!id || !spec) return alert("Rellena el ID y la Especialidad.");
-
-        const btn = document.getElementById('btn-save');
-        btn.innerText = "Sincronizando con la nube...";
-        btn.disabled = true;
-
-        try {
-            let res = await fetch(JSON_DATABASE_URL);
-            let listaActual = [];
-            if (res.ok) listaActual = await res.json();
-
-            listaActual = listaActual.filter(u => u.id !== id);
-            listaActual.push({ id, spec, escala: esc, nota: notaGlobal });
-
-            await fetch(JSON_DATABASE_URL, {
-                method: 'POST',
-                body: JSON.stringify(listaActual)
-            });
-
-            alert("¡Tu nota se ha guardado en el listado global!");
-            document.getElementById('unlock-id').value = id; // Autocompletar login
-            showView('rank-view');
-        } catch (e) {
-            alert("Error de conexión. Comprueba tu BUCKET_ID.");
-            console.error(e);
-        } finally {
-            btn.innerText = "Publicar Nota y Ver Listado";
-            btn.disabled = false;
+        // Si el archivo existe, lo leemos. (Si da 404 en consola, lo ignora pacíficamente)
+        if (res.ok) {
+            listaActual = await res.json();
         }
-    }
 
-    async function cargarRanking() {
-        const unlockId = document.getElementById('unlock-id').value.trim();
-        const container = document.getElementById('tabla-html');
+        // 2. Añadimos tu nota
+        listaActual = listaActual.filter(u => u.id !== id);
+        listaActual.push({ id, spec, escala: esc, nota: notaGlobal });
+
+        // 3. Guardamos. Al quitar los 'headers', evitamos el bloqueo 403 del navegador
+        await fetch(JSON_DATABASE_URL, {
+            method: 'POST',
+            body: JSON.stringify(listaActual)
+        });
+
+        alert("¡Tu nota se ha guardado en el listado global!");
+        document.getElementById('unlock-id').value = id; // Autocompleta para entrar
+        showView('rank-view');
         
-        if(!unlockId) return alert("Escribe tu ID.");
-        container.innerHTML = "<p style='text-align:center;'>Descargando listado en tiempo real...</p>";
+    } catch (e) {
+        alert("Aviso: Comprueba tu conexión o inténtalo en 1 minuto.");
+        console.error(e);
+    } finally {
+        btn.innerText = "Publicar Nota y Ver Listado";
+        btn.disabled = false;
+    }
+}
+
+async function cargarRanking() {
+    const unlockId = document.getElementById('unlock-id').value.trim();
+    const container = document.getElementById('tabla-html');
+    
+    if(!unlockId) return alert("Escribe tu ID para entrar.");
+    container.innerHTML = "<p style='text-align:center;'>Descargando listado en tiempo real...</p>";
+    
+    try {
+        const response = await fetch(JSON_DATABASE_URL);
         
-        try {
-            const response = await fetch(JSON_DATABASE_URL);
-            if(!response.ok) {
-                container.innerHTML = "<p>El listado está vacío o hubo un error.</p>";
-                return;
-            }
-            const data = await response.json();
-            
-            if(data.some(u => u.id === unlockId)) {
-                document.getElementById('rank-lock').style.display = 'none';
-                document.getElementById('rank-content').style.display = 'block';
-                renderTable(data);
-            } else {
-                alert("Acceso denegado: El ID introducido no ha publicado ninguna nota en el escalafón.");
-                container.innerHTML = "";
-            }
-        } catch (e) {
-            alert("Error de red.");
+        // Si nadie ha publicado aún, el servidor devuelve 404. Lo avisamos con texto.
+        if(response.status === 404) {
+            container.innerHTML = "<p style='text-align:center; color:var(--muted);'>El listado está vacío actualmente.<br><b>¡Sé el primero en guardar tu nota desde la calculadora!</b></p>";
+            return;
+        }
+        
+        if(!response.ok) {
+            container.innerHTML = "<p>Error de lectura. El servidor está ocupado.</p>";
+            return;
+        }
+        
+        const data = await response.json();
+        
+        if(data.some(u => u.id === unlockId)) {
+            document.getElementById('rank-lock').style.display = 'none';
+            document.getElementById('rank-content').style.display = 'block';
+            renderTable(data);
+        } else {
+            alert("Acceso denegado: El ID introducido no figura en el escalafón. Guarda tu nota primero.");
             container.innerHTML = "";
         }
+    } catch (e) {
+        alert("Fallo de red al descargar el listado.");
+        container.innerHTML = "";
     }
+}
 
     function renderTable(data) {
         data.sort((a, b) => {
