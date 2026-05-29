@@ -63,6 +63,7 @@
                     <select id="escala" onchange="toggleOficialFields()">
                         <option value="oficial">Escala de Oficiales</option>
                         <option value="suboficial">Escala de Suboficiales</option>
+                        <option value="cuerpos_comunes">Cuerpos Comunes (cambio de cuerpo/escala)</option>
                     </select>
                 </div>
                 <div class="btn-group">
@@ -79,6 +80,9 @@
                 </div>
                 <div id="info_tiempo_suboficial" class="info-box" style="display:none;">
                     <b>Suboficiales:</b> Militar profesional: 0,05 pts/mes (máx. 3 pts). Reservista Voluntario: 0,02 pts/mes (máx. 1,2 pts). <b>Tope conjunto tiempo de servicios: 4 pts.</b>
+                </div>
+                <div id="info_tiempo_cc" class="info-box" style="display:none;">
+                    <b>Cuerpos Comunes:</b> Militar profesional: 0,05 pts/mes (máx. 3 pts). Reservista Voluntario: 0,02 pts/mes (máx. 1,2 pts). <b>Tope conjunto tiempo de servicios: 4 pts.</b>
                 </div>
 
                 <div class="grid-2">
@@ -127,12 +131,7 @@
                             <label>Distinguido en la Orden General (3 pts):</label>
                             <input type="number" id="distinguido" value="0" min="0">
                         </div>
-                        <div class="input-group">
-                            <!--
-                                CORRECCIÓN: San Hermenegildo vale 2 pts en AMBAS escalas (Apéndice 8 Oficiales y Anexo II Suboficiales).
-                                Para Suboficiales, la Cruz a la Constancia se incluye en este mismo apartado ("cualquier modalidad o clase").
-                                Para Oficiales, la Cruz de Bronce a la Constancia es un campo SEPARADO (1,5 pts).
-                            -->
+                        <div class="input-group" id="seccion_hermenegildo">
                             <label id="label_hermenegildo">Cruz R. y M. Orden San Hermenegildo (2 pts):</label>
                             <input type="number" id="hermenegildo" value="0" min="0">
                         </div>
@@ -213,34 +212,30 @@
                     </div>
                 </div>
 
-                <!-- Sección Suboficiales -->
+                <!-- Sección Suboficiales y Cuerpos Comunes -->
                 <div id="ipec_suboficial" style="display:none;">
                     <div class="info-box">
-                        Introduce la calificación global de cada informe. Tabla: <b>A = 9,5 | B = 8,5 | C = 7,5 | D = 6,5 | E = 4</b>. Se calcula la media aritmética de ambos y se multiplica × 2. <b>Máx. 19 pts.</b><br>
+                        Introduce la nota global de cada informe (escala 4–9,5). Equivalencias: <b>A = 9,5 | B = 8,5 | C = 7,5 | D = 6,5 | E = 4</b>. Si tu informe tiene calificaciones numéricas, introdúcelas directamente. Se calcula la media aritmética y se multiplica × 2. <b>Máx. 19 pts.</b><br>
                         <b>Penalización:</b> Si algún informe tiene 5 o más valoraciones E, se restan 10 puntos del <b>total VMM</b>. Si el resultado es negativo, computa como 0.
                     </div>
                     <div class="grid-2">
                         <div class="input-group">
-                            <label>Informe más reciente (Año 1):</label>
-                            <select id="ipec_sub_a1">
-                                <option value="9.5">A (9,5 pts)</option>
-                                <option value="8.5">B (8,5 pts)</option>
-                                <option value="7.5" selected>C (7,5 pts)</option>
-                                <option value="6.5">D (6,5 pts)</option>
-                                <option value="4">E (4 pts)</option>
-                            </select>
+                            <label>Nota global informe más reciente (Año 1):</label>
+                            <small>Introduce un valor entre 4 y 9,5 (p.ej. 7,5 para C)</small>
+                            <input type="number" id="ipec_sub_a1" step="0.01" value="7.5" min="4" max="9.5">
                         </div>
                         <div class="input-group">
-                            <label>Informe anterior (Año 2):</label>
-                            <select id="ipec_sub_a2">
-                                <option value="9.5">A (9,5 pts)</option>
-                                <option value="8.5">B (8,5 pts)</option>
-                                <option value="7.5" selected>C (7,5 pts)</option>
-                                <option value="6.5">D (6,5 pts)</option>
-                                <option value="4">E (4 pts)</option>
-                                <option value="none">Solo dispongo de un informe</option>
-                            </select>
+                            <label>Nota global informe anterior (Año 2):</label>
+                            <small>Deja en 0 si solo dispones de un informe</small>
+                            <input type="number" id="ipec_sub_a2" step="0.01" value="7.5" min="0" max="9.5">
                         </div>
+                    </div>
+                    <div class="input-group">
+                        <label>¿Solo dispones de un informe?</label>
+                        <select id="ipec_sub_solo_uno">
+                            <option value="0">No, tengo dos informes</option>
+                            <option value="1">Sí, solo tengo un informe</option>
+                        </select>
                     </div>
                     <div class="input-group">
                         <label>¿Algún informe tiene 5 o más valoraciones E?</label>
@@ -266,15 +261,42 @@
                     Puntuación título = media expediente (5–10) × 2 → entre 10 y 20 pts. Máster: 2 pts. Doctor: 2 pts. <b>VMA máx.: 32 pts.</b>
                 </div>
                 <div id="info_vma_suboficial" class="info-box" style="display:none;">
-                    <b>Suboficiales</b> — (Anexo II, apt. a, b, c).<br>
-                    Puntuación título = media expediente (5–10) × 2 → entre 10 y 20 pts. Máster: 5 pts. Doctor: 7 pts. <b>VMA máx.: 37 pts.</b>
+                    <b>Suboficiales</b> (Anexo II) — el título principal se puntúa igual tanto si es <b>Técnico Superior de FP</b> como si es un título universitario: media del expediente (5–10) × 2 = entre 10 y 20 pts.<br>
+                    Máster: 5 pts · Doctor: 7 pts · <b>VMA máx.: 37 pts.</b>
+                </div>
+                <div id="info_vma_cc" class="info-box" style="display:none;">
+                    <b>Cuerpos Comunes</b> (Anexo II BOE 2011) — título universitario: media (5–10) × 2 = entre 10 y 20 pts. Máster: 5 pts · Doctor: 7 pts · Inglés: avanzado/C1/SLP 3,3,3,3+ = 5 pts, intermedio/SLP ≥2 rasgos &gt; 2 = 3 pts. <b>VMA máx.: 37 pts.</b>
                 </div>
 
-                <div class="input-group">
-                    <label>Nota Media del Expediente Académico (Grado / Licenciatura / Equivalente):</label>
-                    <small>Introduce la media del expediente (escala 5–10). Se multiplicará × 2. Si no tienes titulación, deja en 0.</small>
-                    <input type="number" id="nota_titulacion" step="0.01" value="0" min="0" max="10">
+                <div id="bloque_titulacion_suboficial" style="display:none;">
+                    <div class="input-group">
+                        <label>Tipo de titulación principal:</label>
+                        <small>Selecciona el título que aportas al concurso. Solo se valora uno.</small>
+                        <select id="tipo_titulo_sub" onchange="toggleTituloSub()">
+                            <option value="ninguno">Ninguno / No aporto título</option>
+                            <option value="tsuperior">Técnico Superior de FP (ciclo formativo grado superior)</option>
+                            <option value="universitario">Grado universitario / Licenciatura / Diplomatura</option>
+                        </select>
+                    </div>
                 </div>
+
+                <div id="bloque_titulacion_oficial">
+                    <div class="input-group">
+                        <label>Nota Media del Expediente Académico (Grado / Licenciatura):</label>
+                        <small>Introduce la media del expediente (escala 5–10). Se multiplicará × 2. Si no tienes titulación, deja en 0.</small>
+                        <input type="number" id="nota_titulacion" step="0.01" value="0" min="0" max="10">
+                    </div>
+                </div>
+
+                <!-- Campo de nota para suboficiales: aparece al seleccionar tipo de título -->
+                <div id="bloque_nota_sub" style="display:none;">
+                    <div class="input-group">
+                        <label id="label_nota_sub">Nota Media del Expediente / Ciclo Formativo (escala 5–10):</label>
+                        <small>Media ponderada de los módulos o créditos. Se multiplicará × 2 → entre 10 y 20 pts.</small>
+                        <input type="number" id="nota_titulacion_sub" step="0.01" value="0" min="5" max="10">
+                    </div>
+                </div>
+
                 <div class="grid-2">
                     <div class="input-group">
                         <label>¿Posees Título de Máster Oficial?</label>
@@ -411,7 +433,10 @@
     // ── Actualización dinámica de campos según escala ─────────
     function toggleOficialFields() {
         const esc = document.getElementById('escala').value;
-        const isOficial = (esc === 'oficial');
+        const isOficial      = (esc === 'oficial');
+        const isSuboficial   = (esc === 'suboficial');
+        const isCuerposComunes = (esc === 'cuerpos_comunes');
+        const isSubOrCC      = isSuboficial || isCuerposComunes;
 
         // Segundo idioma (solo Oficiales)
         document.getElementById('seccion_segundo_idioma').style.display = isOficial ? 'block' : 'none';
@@ -423,7 +448,11 @@
 
         // IPEC: Oficiales = nota numérica × 1,5 ; Suboficiales = letras × 2
         document.getElementById('ipec_oficial').style.display    = isOficial ? 'block' : 'none';
-        document.getElementById('ipec_suboficial').style.display = isOficial ? 'none'  : 'block';
+        document.getElementById('ipec_suboficial').style.display = isSubOrCC ? 'block' : 'none';
+
+        // Hermenegildo: no existe en Cuerpos Comunes
+        document.getElementById('seccion_hermenegildo').style.display = isCuerposComunes ? 'none' : 'block';
+        if (isCuerposComunes) document.getElementById('hermenegildo').value = '0';
 
         // Recompensas FAS: etiquetas y topes según escala
         document.getElementById('pts_rojo').textContent  = isOficial ? '6,5' : '7';
@@ -437,14 +466,36 @@
 
         // Info boxes Tiempo
         document.getElementById('info_tiempo_oficial').style.display   = isOficial ? 'block' : 'none';
-        document.getElementById('info_tiempo_suboficial').style.display = isOficial ? 'none'  : 'block';
+        document.getElementById('info_tiempo_suboficial').style.display  = isSuboficial ? 'block' : 'none';
+        document.getElementById('info_tiempo_cc').style.display           = isCuerposComunes ? 'block' : 'none';
 
         // Info boxes VMA
         document.getElementById('info_vma_oficial').style.display    = isOficial ? 'block' : 'none';
-        document.getElementById('info_vma_suboficial').style.display  = isOficial ? 'none'  : 'block';
+        document.getElementById('info_vma_suboficial').style.display   = isSuboficial ? 'block' : 'none';
+        document.getElementById('info_vma_cc').style.display           = isCuerposComunes ? 'block' : 'none';
+
+        // Bloque titulacion: oficial = input directo; suboficial = selector tipo titulo
+        document.getElementById('bloque_titulacion_oficial').style.display = isOficial ? 'block' : 'none';
+        document.getElementById('bloque_titulacion_suboficial').style.display = isSubOrCC ? 'block' : 'none';
+        document.getElementById('bloque_nota_sub').style.display = 'none';
+        if (!isOficial) document.getElementById('tipo_titulo_sub').value = 'ninguno';
 
         // Opciones del select de inglés según escala
         actualizarOpcionesIngles();
+    }
+
+    function toggleTituloSub() {
+        const tipo = document.getElementById('tipo_titulo_sub').value;
+        const bloqueNota = document.getElementById('bloque_nota_sub');
+        const labelNota  = document.getElementById('label_nota_sub');
+        if (tipo === 'ninguno') {
+            bloqueNota.style.display = 'none';
+        } else {
+            bloqueNota.style.display = 'block';
+            labelNota.textContent = tipo === 'tsuperior'
+                ? 'Nota Media del Ciclo Formativo de Grado Superior (escala 5–10):'
+                : 'Nota Media del Expediente Universitario (escala 5–10):';
+        }
     }
 
     function actualizarOpcionesIngles() {
@@ -454,21 +505,26 @@
         const prevVal = sel.value;
 
         if (esc === 'oficial') {
-            // CORRECCIÓN: Para Oficiales, el B2 de inglés NO computa en el baremo de Apéndice 8.
-            // Solo C1, Filología o SLP 3,3,3,3 o superior dan 3 pts.
             sel.innerHTML = `
                 <option value="ninguno">Ninguno o Inferior a C1</option>
                 <option value="c1">C1 / Filología inglesa / SLP 3,3,3,3 o superior (3 pts)</option>
             `;
-            hint.textContent = 'Oficiales (Apéndice 8): C1/Filología/SLP 3,3,3,3+ = 3 pts. El nivel B2 no computa directamente para inglés en esta escala.';
-        } else {
-            // CORRECCIÓN Suboficiales (Anexo II, apt. d): C1/Filología/SLP 3,3,3,3 → 5 pts; B2 → 3 pts. Máx. 5 pts.
+            hint.textContent = 'Oficiales (Apéndice 8): C1/Filología/SLP 3,3,3,3+ = 3 pts. El nivel B2 no computa para esta escala.';
+        } else if (esc === 'suboficial') {
             sel.innerHTML = `
                 <option value="ninguno">Ninguno o Inferior a B2</option>
                 <option value="b2">Nivel B2 / SLP con ≥2 rasgos &gt; 2 (3 pts)</option>
                 <option value="c1">C1 / Filología inglesa / SLP 3,3,3,3 o superior (5 pts)</option>
             `;
             hint.textContent = 'Suboficiales (Anexo II): C1/Filología/SLP 3,3,3,3+ = 5 pts · B2 = 3 pts. Máx. 5 pts.';
+        } else {
+            // Cuerpos Comunes (BOE 2011 Anexo II): avanzado/C1/SLP 3,3,3,3+ = 5 pts; intermedio/SLP >=2 rasgos = 3 pts. Máx. 5 pts.
+            sel.innerHTML = `
+                <option value="ninguno">Ninguno o Inferior a intermedio</option>
+                <option value="b2">Nivel intermedio / SLP con ≥2 rasgos &gt; 2 (3 pts)</option>
+                <option value="c1">Nivel avanzado / C1 / SLP 3,3,3,3 o superior (5 pts)</option>
+            `;
+            hint.textContent = 'Cuerpos Comunes (BOE 2011): avanzado/C1/SLP 3,3,3,3+ = 5 pts · intermedio = 3 pts. Máx. 5 pts.';
         }
 
         // Restaurar valor si sigue siendo válido
@@ -480,7 +536,10 @@
     // ════════════════════════════════════════════════════════
     function calcularBaremo() {
         const esc = document.getElementById('escala').value;
-        const isOficial = (esc === 'oficial');
+        const isOficial      = (esc === 'oficial');
+        const isSuboficial   = (esc === 'suboficial');
+        const isCuerposComunes = (esc === 'cuerpos_comunes');
+        const isSubOrCC      = isSuboficial || isCuerposComunes;
         const val = (id) => parseFloat(document.getElementById(id).value) || 0;
 
         // ─── 1. MÉRITOS MILITARES (VMM) ──────────────────────
@@ -510,7 +569,7 @@
         recFAS += val('felicitacion') * 0.5;
         recFAS += val('ext_armado')   * 5;
         recFAS += val('ext_otras')    * 1;
-        recFAS = Math.min(recFAS, isOficial ? 15 : 16);
+        recFAS = Math.min(recFAS, isOficial ? 15 : 16);  // CC y Sub: 16 pts
 
         // d) Recompensas Guardia Civil
         let recGC = (val('gc_rojo') * 4) + (val('gc_plata') * 3) + (val('gc_blanca') * 2);
@@ -525,15 +584,15 @@
             ipecPts = Math.min(val('ipec_nota') * 1.5, 15);
             ipecPenalizar = (val('ipec_penalizacion') === 1);
         } else {
-            // CORRECCIÓN Suboficiales: calificaciones A/B/C/D/E → tabla de equivalencias → media × 2 (máx. 19 pts)
-            const nota1 = parseFloat(document.getElementById('ipec_sub_a1').value) || 0;
-            const val2str = document.getElementById('ipec_sub_a2').value;
+            // Suboficiales y Cuerpos Comunes: nota numérica (4-9,5) × 2 (máx. 19 pts)
+            const nota1   = parseFloat(document.getElementById('ipec_sub_a1').value) || 0;
+            const soloUno = document.getElementById('ipec_sub_solo_uno').value === '1';
             let mediaSub;
-            if (val2str === 'none') {
+            if (soloUno) {
                 mediaSub = nota1;
             } else {
-                const nota2 = parseFloat(val2str) || 0;
-                mediaSub = (nota1 + nota2) / 2;
+                const nota2 = parseFloat(document.getElementById('ipec_sub_a2').value) || 0;
+                mediaSub = nota2 > 0 ? (nota1 + nota2) / 2 : nota1;
             }
             ipecPts = Math.min(mediaSub * 2, 19);
             ipecPenalizar = (parseFloat(document.getElementById('ipec_penalizacion_sub').value) === 1);
@@ -541,7 +600,7 @@
 
         // Total VMM
         let vmm_total = vmm_tiempo + vmm_misiones + recFAS + recGC + ipecPts;
-        vmm_total = Math.min(vmm_total, isOficial ? 43 : 48);
+        vmm_total = Math.min(vmm_total, isOficial ? 43 : 48);  // CC y Sub: 48
 
         // CORRECCIÓN: La penalización (−10 pts) se aplica sobre el TOTAL VMM, no solo sobre el IPEC.
         if (ipecPenalizar) vmm_total -= 10;
@@ -549,19 +608,28 @@
 
         // ─── 2. MÉRITOS ACADÉMICOS (VMA) ─────────────────────
 
-        // Título principal (grado/licenciatura): media expediente (5–10) × 2
+        // Título principal: media expediente (5-10) x 2
+        // Para suboficiales puede ser Técnico Superior o universitario (misma fórmula)
         let vma_titulos = 0;
-        if (val('nota_titulacion') >= 5) {
-            vma_titulos += val('nota_titulacion') * 2;
+        if (isOficial) {
+            const notaOf = val('nota_titulacion');
+            if (notaOf >= 5) vma_titulos += notaOf * 2;
+        } else {
+            // Suboficiales y Cuerpos Comunes: mismo cálculo
+            const tipoSub = document.getElementById('tipo_titulo_sub').value;
+            if (tipoSub !== 'ninguno') {
+                const notaSub = parseFloat(document.getElementById('nota_titulacion_sub').value) || 0;
+                if (notaSub >= 5) vma_titulos += notaSub * 2;
+            }
         }
 
         // Máster oficial
         // CORRECCIÓN: Oficiales = 2 pts (Apéndice 8, apt. e.2) · Suboficiales = 5 pts (Anexo II, apt. b)
-        if (val('tiene_master') === 1) vma_titulos += isOficial ? 2 : 5;
+        if (val('tiene_master') === 1) vma_titulos += isOficial ? 2 : 5;  // Sub y CC: 5
 
         // Doctor
         // CORRECCIÓN: Oficiales = 2 pts (Apéndice 8, apt. e.3) · Suboficiales = 7 pts (Anexo II, apt. c)
-        if (val('tiene_doctor') === 1) vma_titulos += isOficial ? 2 : 7;
+        if (val('tiene_doctor') === 1) vma_titulos += isOficial ? 2 : 7;  // Sub y CC: 7
 
         // Idiomas
         let vma_idiomas = 0;
@@ -582,11 +650,12 @@
             vma_idiomas = Math.min(vma_idiomas, 5);
         }
 
-        let vma_total = Math.min(vma_titulos + vma_idiomas, isOficial ? 32 : 37);
+        let vma_total = Math.min(vma_titulos + vma_idiomas, isOficial ? 32 : 37);  // Sub y CC: 37
 
         // ─── 3. FÓRMULA FINAL ────────────────────────────────
         // Oficiales:    PFC = VMM / 2 + VMA   (Apéndice 8)
         // Suboficiales: PFC = VMM + VMA        (Anexo II)
+        // Oficiales: PFC = VMM/2 + VMA | Suboficiales y CC: PFC = VMM + VMA
         notaGlobal = isOficial
             ? (vmm_total / 2) + vma_total
             : vmm_total + vma_total;
