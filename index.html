@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Baremo Promoción Interna FAS</title>
+    <title>Baremo Promoción Interna FAS - Sistema Autónomo</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #1b365d; --secondary: #4a5d23; --bg: #f0f4f8; --card: #ffffff; --text: #1e293b; --muted: #64748b; --border: #cbd5e1; }
@@ -639,7 +639,7 @@
             listaActual.push({ id, spec, escala: esc, nota: notaGlobal });
 
             const saveRes = await fetch(JSON_DATABASE_URL, {
-                method: 'POST',
+                method: 'PUT',
                 headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify(listaActual)
             });
