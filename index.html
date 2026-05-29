@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baremo Promoción Interna FAS - Sistema Autónomo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #1b365d; --secondary: #4a5d23; --bg: #f0f4f8; --card: #ffffff; --text: #1e293b; --muted: #64748b; --border: #cbd5e1; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 700px; }
+        .main-nav { display: flex; background: var(--border); padding: 5px; border-radius: 12px; margin-bottom: 25px; }
+        .nav-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; color: var(--text); background: transparent; transition: 0.3s; }
+        .nav-btn.active { background: white; color: var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .card { background: var(--card); padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); border: 1px solid var(--border); }
+        .step { display: none; animation: fadeIn 0.3s ease; }
+        .step.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        h2 { margin-top: 0; color: var(--primary); font-size: 1.4rem; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 0.85rem; color: var(--text); }
+        small { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 5px; }
+        input[type="number"], select, input[type="text"] { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; font-size: 0.95rem; }
+        .progress-bar { height: 10px; background: var(--border); border-radius: 10px; margin-bottom: 25px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--secondary); width: 14%; transition: 0.4s; }
+        .btn-group { display: flex; gap: 10px; margin-top: 25px; }
+        .btn { padding: 14px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; flex: 1; transition: 0.2s; font-size: 1rem; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-outline { background: #e2e8f0; color: var(--text); }
+        .btn-success { background: var(--secondary); color: white; width: 100%; margin-top: 15px; }
+        .btn:hover { opacity: 0.9; }
+        .result-card { text-align: center; background: #e8f4f8; padding: 25px; border-radius: 12px; border: 2px dashed var(--primary); margin-bottom: 20px; }
+        .nota-big { font-size: 3.5rem; font-weight: 800; color: var(--primary); margin: 10px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9rem; }
+        th { background: var(--primary); color: white; padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid var(--border); }
+        /* Contenedores condicionales: oficial-only (amarillo) y seccion-neutral (oculto sin estilo) */
+        .oficial-only { display: none; background: #fffbeb; padding: 10px; border-left: 4px solid #f59e0b; margin-bottom: 15px; border-radius: 4px; }
+        .info-box { background: #f0f9ff; padding: 10px; border-left: 4px solid #3b82f6; margin-bottom: 15px; border-radius: 4px; font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+        .desglose-box { font-size: 0.82rem; color: var(--muted); background: #f8fafc; padding: 14px; border-radius: 8px; margin-bottom: 20px; line-height: 1.7; border: 1px solid var(--border); }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <nav class="main-nav">
+        <button class="nav-btn active" onclick="showView('calc-view')">Calculadora de Baremo</button>
+        <button class="nav-btn" onclick="showView('rank-view')">Escalafón Global</button>
+    </nav>
+
+    <div id="calc-view" class="view active">
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+
+        <div class="card">
+
+            <!-- ═══════════════════════════════════════ PASO 1 ══ -->
+            <div class="step active" id="step1">
+                <h2>1. Escala de Acceso</h2>
+                <p style="font-size: 0.9rem; color: var(--muted);">Selecciona la escala para adaptar las fórmulas legales y topes de puntuación.</p>
+                <div class="input-group">
+                    <label>¿A qué escala te presentas?</label>
+                    <select id="escala" onchange="toggleOficialFields()">
+                        <option value="oficial">Escala de Oficiales</option>
+                        <option value="suboficial">Escala de Suboficiales</option>
+                    </select>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="nextStep(2)">Siguiente Paso</button>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════ PASO 2 ══ -->
+            <div class="step" id="step2">
+                <h2>2. Tiempo de Servicios (VMM)</h2>
+
+                <div id="info_tiempo_oficial" class="info-box">
+                    <b>Oficiales:</b> Militar de carrera/complemento/Tropa y Marinería: 0,05 pts/mes (se computa a partir del 2.º año, máx. 4 pts). Reservista Voluntario: 0,02 pts/mes (máx. 1,2 pts). <b>Tope conjunto tiempo de servicios: 4 pts.</b>
+                </div>
+                <div id="info_tiempo_suboficial" class="info-box" style="display:none;">
+                    <b>Suboficiales:</b> Militar profesional: 0,05 pts/mes (máx. 3 pts). Reservista Voluntario: 0,02 pts/mes (máx. 1,2 pts). <b>Tope conjunto tiempo de servicios: 4 pts.</b>
+                </div>
+
+                <div class="grid-2">
+                    <div class="input-group">
+                        <label id="label_meses_mil">Meses como Militar (Prof/Comp/Tropa):</label>
+                        <small>0,05 pts/mes</small>
+                        <input type="number" id="meses_mil" value="0" min="0">
+                    </div>
+                    <div class="input-group">
+                        <label>Meses como Reservista Voluntario:</label>
+                        <small>0,02 pts/mes (máx. 1,2 pts)</small>
+                        <input type="number" id="meses_res" value="0" min="0">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Meses en Operaciones en el Extranjero / Misiones de Paz:</label>
+                    <small>0,50 pts/mes (máx. 5 pts)</small>
+                    <input type="number" id="meses_mis" value="0" min="0">
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-outline" onclick="nextStep(1)">Atrás</button>
+                    <button class="btn btn-primary" onclick="nextStep(3)">Siguiente</button>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════ PASO 3 ══ -->
+            <div class="step" id="step3">
+                <h2>3. Recompensas (VMM)</h2>
+                <small>Indica la cantidad que posees de cada condecoración. Tope Recompensas militares FAS: <b><span id="max_rec_fas">15</span> pts</b> | Recompensas GC: <b>4 pts</b>.</small>
+
+                <div style="max-height: 420px; overflow-y: auto; padding-right: 10px; margin-top: 15px;">
+                    <div class="grid-2">
+                        <div class="input-group">
+                            <label>Cruz Distintivo Rojo (<span id="pts_rojo">6,5</span> pts):</label>
+                            <input type="number" id="cruz_rojo" value="0" min="0">
+                        </div>
+                        <div class="input-group">
+                            <label>Cruz Distintivo Azul/Amarillo (<span id="pts_azul">5</span> pts):</label>
+                            <input type="number" id="cruz_azul" value="0" min="0">
+                        </div>
+                        <div class="input-group">
+                            <label>Cruz Distintivo Blanco (4 pts):</label>
+                            <input type="number" id="cruz_blanca" value="0" min="0">
+                        </div>
+                        <div class="input-group">
+                            <label>Distinguido en la Orden General (3 pts):</label>
+                            <input type="number" id="distinguido" value="0" min="0">
+                        </div>
+                        <div class="input-group">
+                            <!--
+                                CORRECCIÓN: San Hermenegildo vale 2 pts en AMBAS escalas (Apéndice 8 Oficiales y Anexo II Suboficiales).
+                                Para Suboficiales, la Cruz a la Constancia se incluye en este mismo apartado ("cualquier modalidad o clase").
+                                Para Oficiales, la Cruz de Bronce a la Constancia es un campo SEPARADO (1,5 pts).
+                            -->
+                            <label id="label_hermenegildo">Cruz R. y M. Orden San Hermenegildo (2 pts):</label>
+                            <input type="number" id="hermenegildo" value="0" min="0">
+                        </div>
+                        <div class="input-group">
+                            <label>Menciones Honoríficas (1 pt):</label>
+                            <input type="number" id="mencion" value="0" min="0">
+                        </div>
+                        <div class="input-group">
+                            <label>Felicitaciones individuales SIPERDEF (0,5 pts):</label>
+                            <input type="number" id="felicitacion" value="0" min="0">
+                        </div>
+                        <div class="input-group">
+                            <label>Cond. extran. mérito indiv. conflicto armado (5 pts):</label>
+                            <input type="number" id="ext_armado" value="0" min="0">
+                        </div>
+                        <div class="input-group">
+                            <label>Condecoraciones extranjeras (otras) (1 pt):</label>
+                            <input type="number" id="ext_otras" value="0" min="0">
+                        </div>
+                    </div>
+
+                    <!--
+                        CORRECCIÓN: Cruz de Bronce a la Constancia en el Servicio:
+                        - EXCLUSIVA de Oficiales (1,5 pts). No existe en el baremo de Suboficiales.
+                        - En Suboficiales, toda la Constancia está ya cubierta por el campo "Hermenegildo" (2 pts, cualquier modalidad).
+                    -->
+                    <div id="seccion_constancia" style="display:block; margin-bottom: 15px;">
+                        <div class="grid-2">
+                            <div class="input-group">
+                                <label>Cruz de Bronce a la Constancia en el Servicio (1,5 pts — solo Oficiales):</label>
+                                <input type="number" id="cruz_constancia" value="0" min="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4 style="margin-top: 5px; color: var(--secondary);">Recompensas Guardia Civil (máx. 4 pts)</h4>
+                    <div class="grid-2">
+                        <div class="input-group"><label>GC: Cruz con Distintivo Rojo OM (4 pts):</label><input type="number" id="gc_rojo" value="0" min="0"></div>
+                        <div class="input-group"><label>GC: Cruz de Plata OM (3 pts):</label><input type="number" id="gc_plata" value="0" min="0"></div>
+                        <div class="input-group"><label>GC: Cruz con Distintivo Blanco OM (2 pts):</label><input type="number" id="gc_blanca" value="0" min="0"></div>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-outline" onclick="nextStep(2)">Atrás</button>
+                    <button class="btn btn-primary" onclick="nextStep(4)">Siguiente</button>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════ PASO 4 ══ -->
+            <div class="step" id="step4">
+                <h2>4. Informes Personales de Calificación (IPEC)</h2>
+
+                <!--
+                    CORRECCIÓN IPEC:
+                    - Oficiales: nota global numérica × 1,5 (máx. 15 pts). Penalización: media < 5 en "cualidades de carácter profesional" → −10 pts sobre el TOTAL VMM.
+                    - Suboficiales: calificaciones literales A/B/C/D/E con tabla de equivalencias. Media × 2 (máx. 19 pts). Penalización: ≥5 valoraciones E en algún informe → −10 pts sobre el TOTAL VMM.
+                    CORRECCIÓN: La penalización se aplica sobre el TOTAL VMM, no solo sobre el subtotal IPEC.
+                -->
+
+                <!-- Sección Oficiales -->
+                <div id="ipec_oficial">
+                    <div class="info-box">
+                        Media aritmética de las notas globales de los dos últimos informes (o el último disponible) × 1,5 = puntuación IPEC. <b>Máx. 15 pts.</b><br>
+                        <b>Penalización:</b> Si en alguno de los informes la calificación media en el elemento de valoración <em>cualidades de carácter profesional</em> es inferior a 5, se restan 10 puntos del <b>total VMM</b>. Si el resultado es negativo, computa como 0.
+                    </div>
+                    <div class="input-group">
+                        <label>Nota media global del IPEC (escala 0–10):</label>
+                        <small>Media aritmética de las notas globales de los últimos 2 años (o del único disponible).</small>
+                        <input type="number" id="ipec_nota" step="0.01" value="0" min="0" max="10">
+                    </div>
+                    <div class="input-group">
+                        <label>¿Algún informe tiene media &lt; 5 en cualidades de carácter profesional?</label>
+                        <select id="ipec_penalizacion">
+                            <option value="0">No (sin penalización)</option>
+                            <option value="1">Sí (−10 pts sobre el total VMM)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Sección Suboficiales -->
+                <div id="ipec_suboficial" style="display:none;">
+                    <div class="info-box">
+                        Introduce la calificación global de cada informe. Tabla: <b>A = 9,5 | B = 8,5 | C = 7,5 | D = 6,5 | E = 4</b>. Se calcula la media aritmética de ambos y se multiplica × 2. <b>Máx. 19 pts.</b><br>
+                        <b>Penalización:</b> Si algún informe tiene 5 o más valoraciones E, se restan 10 puntos del <b>total VMM</b>. Si el resultado es negativo, computa como 0.
+                    </div>
+                    <div class="grid-2">
+                        <div class="input-group">
+                            <label>Informe más reciente (Año 1):</label>
+                            <select id="ipec_sub_a1">
+                                <option value="9.5">A (9,5 pts)</option>
+                                <option value="8.5">B (8,5 pts)</option>
+                                <option value="7.5" selected>C (7,5 pts)</option>
+                                <option value="6.5">D (6,5 pts)</option>
+                                <option value="4">E (4 pts)</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Informe anterior (Año 2):</label>
+                            <select id="ipec_sub_a2">
+                                <option value="9.5">A (9,5 pts)</option>
+                                <option value="8.5">B (8,5 pts)</option>
+                                <option value="7.5" selected>C (7,5 pts)</option>
+                                <option value="6.5">D (6,5 pts)</option>
+                                <option value="4">E (4 pts)</option>
+                                <option value="none">Solo dispongo de un informe</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>¿Algún informe tiene 5 o más valoraciones E?</label>
+                        <select id="ipec_penalizacion_sub">
+                            <option value="0">No (sin penalización)</option>
+                            <option value="1">Sí (−10 pts sobre el total VMM)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-outline" onclick="nextStep(3)">Atrás</button>
+                    <button class="btn btn-primary" onclick="nextStep(5)">Siguiente</button>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════ PASO 5 ══ -->
+            <div class="step" id="step5">
+                <h2>5. Títulos Académicos (VMA)</h2>
+
+                <div id="info_vma_oficial" class="info-box">
+                    <b>Oficiales</b> — proceso con exigencia de titulación universitaria previa (Apéndice 8, apt. e).<br>
+                    Puntuación título = media expediente (5–10) × 2 → entre 10 y 20 pts. Máster: 2 pts. Doctor: 2 pts. <b>VMA máx.: 32 pts.</b>
+                </div>
+                <div id="info_vma_suboficial" class="info-box" style="display:none;">
+                    <b>Suboficiales</b> — (Anexo II, apt. a, b, c).<br>
+                    Puntuación título = media expediente (5–10) × 2 → entre 10 y 20 pts. Máster: 5 pts. Doctor: 7 pts. <b>VMA máx.: 37 pts.</b>
+                </div>
+
+                <div class="input-group">
+                    <label>Nota Media del Expediente Académico (Grado / Licenciatura / Equivalente):</label>
+                    <small>Introduce la media del expediente (escala 5–10). Se multiplicará × 2. Si no tienes titulación, deja en 0.</small>
+                    <input type="number" id="nota_titulacion" step="0.01" value="0" min="0" max="10">
+                </div>
+                <div class="grid-2">
+                    <div class="input-group">
+                        <label>¿Posees Título de Máster Oficial?</label>
+                        <small id="small_master">Oficiales: 2 pts · Suboficiales: 5 pts</small>
+                        <select id="tiene_master">
+                            <option value="0">No</option>
+                            <option value="1">Sí</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>¿Posees Título de Doctor?</label>
+                        <small id="small_doctor">Oficiales: 2 pts · Suboficiales: 7 pts</small>
+                        <select id="tiene_doctor">
+                            <option value="0">No</option>
+                            <option value="1">Sí</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-outline" onclick="nextStep(4)">Atrás</button>
+                    <button class="btn btn-primary" onclick="nextStep(6)">Siguiente</button>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════ PASO 6 ══ -->
+            <div class="step" id="step6">
+                <h2>6. Idiomas (VMA)</h2>
+
+                <!--
+                    CORRECCIÓN IDIOMAS:
+                    - Oficiales (Apéndice 8, apt. a.1): solo C1/Filología/SLP 3,3,3,3+ → 3 pts. El B2 NO puntúa directamente para inglés en oficiales.
+                    - Suboficiales (Anexo II, apt. d): C1/Filología/SLP 3,3,3,3+ → 5 pts; B2 → 3 pts; SLP ≥2 rasgos >2 → 3 pts. Máx. 5 pts.
+                    Las opciones del select se actualizan dinámicamente según la escala.
+                -->
+                <div class="input-group">
+                    <label>Nivel de Inglés Acreditado:</label>
+                    <small id="small_ingles_hint">Oficiales: C1/Filología/SLP 3,3,3,3+ = 3 pts (máx.). El B2 no computa para la escala de Oficiales.</small>
+                    <select id="idioma_ingles">
+                        <option value="ninguno">Ninguno o Inferior a C1</option>
+                        <option value="c1">C1 / Filología inglesa / SLP 3,3,3,3 o superior (3 pts)</option>
+                    </select>
+                </div>
+
+                <!-- Segundo idioma: solo Oficiales -->
+                <div id="seccion_segundo_idioma" class="oficial-only">
+                    <label>Segundo Idioma de interés para las FAS (solo Oficiales):</label>
+                    <small>Se valora solo un concepto. C1/Filología/SLP 3,3,3,3+: 2 pts · B2/SLP 2,2,2,2+: 1 pt. Máx. idiomas total: 8 pts.</small>
+                    <select id="idioma_segundo" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid var(--border); border-radius: 8px; box-sizing: border-box; font-size: 0.95rem;">
+                        <option value="ninguno">Ninguno / No aplica</option>
+                        <option value="b2">Nivel B2 / SLP 2,2,2,2 o superior (1 pt)</option>
+                        <option value="c1">Nivel C1 / Filología / SLP 3,3,3,3 o superior (2 pts)</option>
+                    </select>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-outline" onclick="nextStep(5)">Atrás</button>
+                    <button class="btn btn-success" onclick="calcularBaremo()">CALCULAR BAREMO FINAL</button>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════════ PASO 7 ══ -->
+            <div class="step" id="step7">
+                <div class="result-card">
+                    <span style="font-weight: bold; color: var(--muted);">PUNTUACIÓN FINAL DEL CONCURSO (PFC)</span>
+                    <div class="nota-big" id="nota-final">0.000</div>
+                    <p id="desglose-resumen" style="font-size: 0.9rem; color: var(--primary); font-weight: 600;"></p>
+                </div>
+
+                <div class="desglose-box" id="desglose-detalle"></div>
+
+                <hr style="border: 1px solid var(--border); margin: 25px 0;">
+                <h3 style="margin-bottom: 10px; color: var(--text);">Únete al Escalafón Global</h3>
+                <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 15px;">Guarda tu nota de forma anónima para ver en qué posición quedas respecto al resto de compañeros. Tu ID no se mostrará públicamente.</p>
+
+                <div class="grid-2">
+                    <div class="input-group">
+                        <label>ID Privado (DNI):</label>
+                        <input type="text" id="u_id" placeholder="Ej: 12345678A">
+                    </div>
+                    <div class="input-group">
+                        <label>Cuerpo / Especialidad:</label>
+                        <input type="text" id="u_spec" placeholder="Ej: ET - Transmisiones">
+                    </div>
+                </div>
+                <button class="btn btn-primary" style="width: 100%;" id="btn-save" onclick="guardarEnNube()">Publicar Nota y Ver Listado</button>
+                <button class="btn btn-outline" style="width: 100%; margin-top: 10px;" onclick="nextStep(6)">Volver a la Calculadora</button>
+            </div>
+
+        </div><!-- .card -->
+    </div><!-- #calc-view -->
+
+    <!-- ══════════════════════════════ ESCALAFÓN ══ -->
+    <div id="rank-view" class="view" style="display:none;">
+        <div class="card">
+            <h2>Escalafón Real</h2>
+            <div id="rank-lock">
+                <p style="font-size: 0.9rem; color: var(--muted);">Introduce tu ID Privado (DNI) para desbloquear el acceso al listado.</p>
+                <div class="input-group" style="margin-top: 15px;">
+                    <input type="text" id="unlock-id" placeholder="Tu DNI/ID Privado">
+                </div>
+                <button class="btn btn-primary" style="width:100%;" onclick="cargarRanking()">Entrar al Listado</button>
+            </div>
+            <div id="rank-content" style="display:none;">
+                <div id="tabla-html"></div>
+                <button class="btn btn-outline" style="width: 100%; margin-top: 20px;" onclick="document.getElementById('rank-lock').style.display='block'; document.getElementById('rank-content').style.display='none';">Cerrar Sesión del Listado</button>
+            </div>
+        </div>
+    </div>
+
+</div><!-- .app-container -->
+
+<script>
+    // ════════════════════════════════════════════════════════
+    //  BASE DE DATOS (KVDB)
+    // ════════════════════════════════════════════════════════
+    const BUCKET_ID = "9Ss2qNQL93znGim4FBwRcy";
+    const JSON_DATABASE_URL = `https://kvdb.io/${BUCKET_ID}/escalafon_fas_v2`;
+
+    let notaGlobal = 0;
+
+    // ── Navegación de vistas ──────────────────────────────────
+    function showView(viewId) {
+        document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+        document.getElementById(viewId).style.display = 'block';
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        if (event) event.target.classList.add('active');
+    }
+
+    function nextStep(s) {
+        document.querySelectorAll('.step').forEach(st => st.classList.remove('active'));
+        document.getElementById('step' + s).classList.add('active');
+        document.getElementById('progress-fill').style.width = ((s / 7) * 100) + '%';
+    }
+
+    // ── Actualización dinámica de campos según escala ─────────
+    function toggleOficialFields() {
+        const esc = document.getElementById('escala').value;
+        const isOficial = (esc === 'oficial');
+
+        // Segundo idioma (solo Oficiales)
+        document.getElementById('seccion_segundo_idioma').style.display = isOficial ? 'block' : 'none';
+        if (!isOficial) document.getElementById('idioma_segundo').value = 'ninguno';
+
+        // Cruz de Bronce Constancia (solo Oficiales, 1,5 pts)
+        document.getElementById('seccion_constancia').style.display = isOficial ? 'block' : 'none';
+        if (!isOficial) document.getElementById('cruz_constancia').value = '0';
+
+        // IPEC: Oficiales = nota numérica × 1,5 ; Suboficiales = letras × 2
+        document.getElementById('ipec_oficial').style.display    = isOficial ? 'block' : 'none';
+        document.getElementById('ipec_suboficial').style.display = isOficial ? 'none'  : 'block';
+
+        // Recompensas FAS: etiquetas y topes según escala
+        document.getElementById('pts_rojo').textContent  = isOficial ? '6,5' : '7';
+        document.getElementById('pts_azul').textContent  = isOficial ? '5'   : '5,5';
+        document.getElementById('max_rec_fas').textContent = isOficial ? '15' : '16';
+
+        // Hermenegildo: para Oficiales campo separado; para Suboficiales incluye también la Constancia
+        document.getElementById('label_hermenegildo').textContent = isOficial
+            ? 'Cruz Real y Militar Orden de San Hermenegildo (2 pts):'
+            : 'Cruz Constancia / San Hermenegildo — cualquier modalidad o clase (2 pts):';
+
+        // Info boxes Tiempo
+        document.getElementById('info_tiempo_oficial').style.display   = isOficial ? 'block' : 'none';
+        document.getElementById('info_tiempo_suboficial').style.display = isOficial ? 'none'  : 'block';
+
+        // Info boxes VMA
+        document.getElementById('info_vma_oficial').style.display    = isOficial ? 'block' : 'none';
+        document.getElementById('info_vma_suboficial').style.display  = isOficial ? 'none'  : 'block';
+
+        // Opciones del select de inglés según escala
+        actualizarOpcionesIngles();
+    }
+
+    function actualizarOpcionesIngles() {
+        const esc = document.getElementById('escala').value;
+        const sel = document.getElementById('idioma_ingles');
+        const hint = document.getElementById('small_ingles_hint');
+        const prevVal = sel.value;
+
+        if (esc === 'oficial') {
+            // CORRECCIÓN: Para Oficiales, el B2 de inglés NO computa en el baremo de Apéndice 8.
+            // Solo C1, Filología o SLP 3,3,3,3 o superior dan 3 pts.
+            sel.innerHTML = `
+                <option value="ninguno">Ninguno o Inferior a C1</option>
+                <option value="c1">C1 / Filología inglesa / SLP 3,3,3,3 o superior (3 pts)</option>
+            `;
+            hint.textContent = 'Oficiales (Apéndice 8): C1/Filología/SLP 3,3,3,3+ = 3 pts. El nivel B2 no computa directamente para inglés en esta escala.';
+        } else {
+            // CORRECCIÓN Suboficiales (Anexo II, apt. d): C1/Filología/SLP 3,3,3,3 → 5 pts; B2 → 3 pts. Máx. 5 pts.
+            sel.innerHTML = `
+                <option value="ninguno">Ninguno o Inferior a B2</option>
+                <option value="b2">Nivel B2 / SLP con ≥2 rasgos &gt; 2 (3 pts)</option>
+                <option value="c1">C1 / Filología inglesa / SLP 3,3,3,3 o superior (5 pts)</option>
+            `;
+            hint.textContent = 'Suboficiales (Anexo II): C1/Filología/SLP 3,3,3,3+ = 5 pts · B2 = 3 pts. Máx. 5 pts.';
+        }
+
+        // Restaurar valor si sigue siendo válido
+        if (sel.querySelector(`option[value="${prevVal}"]`)) sel.value = prevVal;
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  CÁLCULO DEL BAREMO
+    // ════════════════════════════════════════════════════════
+    function calcularBaremo() {
+        const esc = document.getElementById('escala').value;
+        const isOficial = (esc === 'oficial');
+        const val = (id) => parseFloat(document.getElementById(id).value) || 0;
+
+        // ─── 1. MÉRITOS MILITARES (VMM) ──────────────────────
+
+        // a) Tiempo de servicios
+        //    Oficiales: cómputo desde el 2.º año, máx 4 pts como militar de carrera/comp/tropa.
+        //    Suboficiales: máx 3 pts como militar profesional.
+        const maxTiemMil = isOficial ? 4 : 3;
+        const pts_mil = Math.min(val('meses_mil') * 0.05, maxTiemMil);
+        const pts_res = Math.min(val('meses_res') * 0.02, 1.2);
+        const vmm_tiempo = Math.min(pts_mil + pts_res, 4); // tope conjunto: 4 pts
+
+        // b) Misiones en el extranjero / mantenimiento de la paz
+        const vmm_misiones = Math.min(val('meses_mis') * 0.50, 5);
+
+        // c) Recompensas militares FAS
+        let recFAS = 0;
+        recFAS += val('cruz_rojo')    * (isOficial ? 6.5 : 7);
+        recFAS += val('cruz_azul')    * (isOficial ? 5   : 5.5);
+        recFAS += val('cruz_blanca')  * 4;
+        recFAS += val('distinguido')  * 3;
+        // CORRECCIÓN: San Hermenegildo = 2 pts en AMBAS escalas.
+        recFAS += val('hermenegildo') * 2;
+        // CORRECCIÓN: Cruz de Bronce a la Constancia = 1,5 pts, EXCLUSIVA de Oficiales.
+        if (isOficial) recFAS += val('cruz_constancia') * 1.5;
+        recFAS += val('mencion')      * 1;
+        recFAS += val('felicitacion') * 0.5;
+        recFAS += val('ext_armado')   * 5;
+        recFAS += val('ext_otras')    * 1;
+        recFAS = Math.min(recFAS, isOficial ? 15 : 16);
+
+        // d) Recompensas Guardia Civil
+        let recGC = (val('gc_rojo') * 4) + (val('gc_plata') * 3) + (val('gc_blanca') * 2);
+        recGC = Math.min(recGC, 4);
+
+        // e) Informes Personales de Calificación (IPEC)
+        let ipecPts = 0;
+        let ipecPenalizar = false;
+
+        if (isOficial) {
+            // Nota global media × 1,5 (máx. 15 pts)
+            ipecPts = Math.min(val('ipec_nota') * 1.5, 15);
+            ipecPenalizar = (val('ipec_penalizacion') === 1);
+        } else {
+            // CORRECCIÓN Suboficiales: calificaciones A/B/C/D/E → tabla de equivalencias → media × 2 (máx. 19 pts)
+            const nota1 = parseFloat(document.getElementById('ipec_sub_a1').value) || 0;
+            const val2str = document.getElementById('ipec_sub_a2').value;
+            let mediaSub;
+            if (val2str === 'none') {
+                mediaSub = nota1;
+            } else {
+                const nota2 = parseFloat(val2str) || 0;
+                mediaSub = (nota1 + nota2) / 2;
+            }
+            ipecPts = Math.min(mediaSub * 2, 19);
+            ipecPenalizar = (parseFloat(document.getElementById('ipec_penalizacion_sub').value) === 1);
+        }
+
+        // Total VMM
+        let vmm_total = vmm_tiempo + vmm_misiones + recFAS + recGC + ipecPts;
+        vmm_total = Math.min(vmm_total, isOficial ? 43 : 48);
+
+        // CORRECCIÓN: La penalización (−10 pts) se aplica sobre el TOTAL VMM, no solo sobre el IPEC.
+        if (ipecPenalizar) vmm_total -= 10;
+        vmm_total = Math.max(vmm_total, 0); // resultado negativo → computa como 0
+
+        // ─── 2. MÉRITOS ACADÉMICOS (VMA) ─────────────────────
+
+        // Título principal (grado/licenciatura): media expediente (5–10) × 2
+        let vma_titulos = 0;
+        if (val('nota_titulacion') >= 5) {
+            vma_titulos += val('nota_titulacion') * 2;
+        }
+
+        // Máster oficial
+        // CORRECCIÓN: Oficiales = 2 pts (Apéndice 8, apt. e.2) · Suboficiales = 5 pts (Anexo II, apt. b)
+        if (val('tiene_master') === 1) vma_titulos += isOficial ? 2 : 5;
+
+        // Doctor
+        // CORRECCIÓN: Oficiales = 2 pts (Apéndice 8, apt. e.3) · Suboficiales = 7 pts (Anexo II, apt. c)
+        if (val('tiene_doctor') === 1) vma_titulos += isOficial ? 2 : 7;
+
+        // Idiomas
+        let vma_idiomas = 0;
+        const ing = document.getElementById('idioma_ingles').value;
+
+        if (isOficial) {
+            // CORRECCIÓN Oficiales: inglés C1/Filología/SLP 3,3,3,3+ → 3 pts. B2 = 0 pts.
+            if (ing === 'c1') vma_idiomas += 3;
+            // Segundo idioma (solo Oficiales)
+            const seg = document.getElementById('idioma_segundo').value;
+            if (seg === 'c1') vma_idiomas += 2;
+            if (seg === 'b2') vma_idiomas += 1;
+            vma_idiomas = Math.min(vma_idiomas, 8);
+        } else {
+            // CORRECCIÓN Suboficiales: C1 → 5 pts; B2 → 3 pts; máx. 5 pts
+            if (ing === 'c1') vma_idiomas += 5;
+            if (ing === 'b2') vma_idiomas += 3;
+            vma_idiomas = Math.min(vma_idiomas, 5);
+        }
+
+        let vma_total = Math.min(vma_titulos + vma_idiomas, isOficial ? 32 : 37);
+
+        // ─── 3. FÓRMULA FINAL ────────────────────────────────
+        // Oficiales:    PFC = VMM / 2 + VMA   (Apéndice 8)
+        // Suboficiales: PFC = VMM + VMA        (Anexo II)
+        notaGlobal = isOficial
+            ? (vmm_total / 2) + vma_total
+            : vmm_total + vma_total;
+
+        // ─── Mostrar resultado ────────────────────────────────
+        document.getElementById('nota-final').innerText = notaGlobal.toFixed(3);
+        document.getElementById('desglose-resumen').innerText =
+            `VMM: ${vmm_total.toFixed(2)} pts  |  VMA: ${vma_total.toFixed(2)} pts`;
+
+        const penStr = ipecPenalizar ? ` <span style="color:#dc2626;">(penalización −10 pts aplicada)</span>` : '';
+        const formulaStr = isOficial
+            ? `PFC = VMM (${vmm_total.toFixed(2)}) / 2 + VMA (${vma_total.toFixed(2)}) = <b>${notaGlobal.toFixed(3)}</b>`
+            : `PFC = VMM (${vmm_total.toFixed(2)}) + VMA (${vma_total.toFixed(2)}) = <b>${notaGlobal.toFixed(3)}</b>`;
+
+        document.getElementById('desglose-detalle').innerHTML =
+            `<b>Desglose VMM:</b> Tiempo ${vmm_tiempo.toFixed(2)} + Misiones ${vmm_misiones.toFixed(2)} + Rec. FAS ${recFAS.toFixed(2)} + Rec. GC ${recGC.toFixed(2)} + IPEC ${ipecPts.toFixed(2)}${penStr}<br>` +
+            `<b>Desglose VMA:</b> Títulos ${vma_titulos.toFixed(2)} + Idiomas ${vma_idiomas.toFixed(2)}<br>` +
+            `<b>Fórmula:</b> ${formulaStr}`;
+
+        nextStep(7);
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  KVDB — Guardar y cargar escalafón
+    // ════════════════════════════════════════════════════════
+    async function guardarEnNube() {
+        const id   = document.getElementById('u_id').value.trim();
+        const spec = document.getElementById('u_spec').value.trim();
+        const esc  = document.getElementById('escala').value;
+
+        if (!id || !spec) return alert("Rellena el ID y la Especialidad.");
+
+        const btn = document.getElementById('btn-save');
+        btn.innerText = "Sincronizando con la nube...";
+        btn.disabled = true;
+
+        try {
+            let res = await fetch(JSON_DATABASE_URL);
+            let listaActual = [];
+            if (res.ok) listaActual = await res.json();
+
+            listaActual = listaActual.filter(u => u.id !== id);
+            listaActual.push({ id, spec, escala: esc, nota: notaGlobal });
+
+            await fetch(JSON_DATABASE_URL, {
+                method: 'POST',
+                body: JSON.stringify(listaActual)
+            });
+
+            alert("¡Tu nota se ha guardado en el listado global!");
+            document.getElementById('unlock-id').value = id;
+            showView('rank-view');
+        } catch (e) {
+            alert("Error de conexión. Comprueba el BUCKET_ID.");
+            console.error(e);
+        } finally {
+            btn.innerText = "Publicar Nota y Ver Listado";
+            btn.disabled = false;
+        }
+    }
+
+    async function cargarRanking() {
+        const unlockId  = document.getElementById('unlock-id').value.trim();
+        const container = document.getElementById('tabla-html');
+
+        if (!unlockId) return alert("Escribe tu ID.");
+        container.innerHTML = "<p style='text-align:center;'>Descargando listado en tiempo real...</p>";
+
+        try {
+            const response = await fetch(JSON_DATABASE_URL);
+            if (!response.ok) { container.innerHTML = "<p>El listado está vacío o hubo un error.</p>"; return; }
+            const data = await response.json();
+
+            if (data.some(u => u.id === unlockId)) {
+                document.getElementById('rank-lock').style.display    = 'none';
+                document.getElementById('rank-content').style.display = 'block';
+                renderTable(data);
+            } else {
+                alert("Acceso denegado: el ID introducido no ha publicado ninguna nota en el escalafón.");
+                container.innerHTML = "";
+            }
+        } catch (e) {
+            alert("Error de red.");
+            container.innerHTML = "";
+        }
+    }
+
+    function renderTable(data) {
+        data.sort((a, b) => {
+            if (a.escala < b.escala) return -1;
+            if (a.escala > b.escala) return 1;
+            if (a.spec   < b.spec)   return -1;
+            if (a.spec   > b.spec)   return 1;
+            return b.nota - a.nota;
+        });
+
+        let html = `<table><thead><tr><th>Especialidad</th><th>Puntuación</th></tr></thead><tbody>`;
+        data.forEach(u => {
+            const labelStyle = u.escala === 'oficial'
+                ? 'color:#d97706; background:#fef3c7;'
+                : 'color:#15803d; background:#dcfce7;';
+            html += `<tr>
+                <td>
+                    <span style="${labelStyle} padding:3px 6px; border-radius:4px; font-size:0.7rem; font-weight:bold;">${u.escala.toUpperCase()}</span>
+                    <br><b style="font-size:0.95rem;">${u.spec}</b>
+                </td>
+                <td style="color:var(--primary); font-weight:800; font-size:1.2rem;">${parseFloat(u.nota).toFixed(3)}</td>
+            </tr>`;
+        });
+        html += `</tbody></table>`;
+        document.getElementById('tabla-html').innerHTML = html;
+    }
+
+    // Inicializar campos según escala por defecto
+    toggleOficialFields();
+</script>
+
+</body>
+</html>
