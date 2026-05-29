@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Baremo Promoción Interna FAS - Sistema Autónomo</title>
+    <title>Baremo Promoción Interna FAS</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #1b365d; --secondary: #4a5d23; --bg: #f0f4f8; --card: #ffffff; --text: #1e293b; --muted: #64748b; --border: #cbd5e1; }
@@ -625,23 +625,32 @@
         btn.disabled = true;
 
         try {
-            let res = await fetch(JSON_DATABASE_URL);
+            // kvdb devuelve texto plano; si la clave no existe aún devuelve 404
             let listaActual = [];
-            if (res.ok) listaActual = await res.json();
+            try {
+                const res = await fetch(JSON_DATABASE_URL);
+                if (res.ok) {
+                    const text = await res.text();
+                    if (text) listaActual = JSON.parse(text);
+                }
+            } catch (_) { /* clave nueva, lista vacía */ }
 
             listaActual = listaActual.filter(u => u.id !== id);
             listaActual.push({ id, spec, escala: esc, nota: notaGlobal });
 
-            await fetch(JSON_DATABASE_URL, {
+            const saveRes = await fetch(JSON_DATABASE_URL, {
                 method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify(listaActual)
             });
+
+            if (!saveRes.ok) throw new Error(`HTTP ${saveRes.status}`);
 
             alert("¡Tu nota se ha guardado en el listado global!");
             document.getElementById('unlock-id').value = id;
             showView('rank-view');
         } catch (e) {
-            alert("Error de conexión. Comprueba el BUCKET_ID.");
+            alert("Error de conexión: " + e.message);
             console.error(e);
         } finally {
             btn.innerText = "Publicar Nota y Ver Listado";
@@ -658,8 +667,17 @@
 
         try {
             const response = await fetch(JSON_DATABASE_URL);
-            if (!response.ok) { container.innerHTML = "<p>El listado está vacío o hubo un error.</p>"; return; }
-            const data = await response.json();
+
+            // 404 = clave aún vacía (nadie ha guardado nada todavía)
+            if (!response.ok) {
+                document.getElementById('rank-lock').style.display    = 'none';
+                document.getElementById('rank-content').style.display = 'block';
+                container.innerHTML = "<p style='text-align:center;color:var(--muted);'>El listado está vacío. ¡Sé el primero en publicar tu nota!</p>";
+                return;
+            }
+
+            const text = await response.text();
+            const data = text ? JSON.parse(text) : [];
 
             if (data.some(u => u.id === unlockId)) {
                 document.getElementById('rank-lock').style.display    = 'none';
@@ -670,8 +688,9 @@
                 container.innerHTML = "";
             }
         } catch (e) {
-            alert("Error de red.");
+            alert("Error de red: " + e.message);
             container.innerHTML = "";
+            console.error(e);
         }
     }
 
