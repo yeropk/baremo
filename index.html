@@ -387,11 +387,10 @@
 </div><!-- .app-container -->
 
 <script>
-    // ════════════════════════════════════════════════════════
-    //  BASE DE DATOS (KVDB)
-    // ════════════════════════════════════════════════════════
-    const BUCKET_ID = "9Ss2qNQL93znGim4FBwRcy";
-    const JSON_DATABASE_URL = `https://kvdb.io/${BUCKET_ID}/escalafon_fas_v2`;
+    // JSONBin
+    const JSONBIN_ID  = "6a199064ddf5aa59f77459c9";
+    const JSONBIN_KEY = "$2a$10$hyLvjarGqY7nr3FcwQ3G9uRKEoxgH4mZnhH99Kra.wv6dr1bBd5B.";
+    const JSONBIN_URL = "https://api.jsonbin.io/v3/b/" + JSONBIN_ID;
 
     let notaGlobal = 0;
 
@@ -610,48 +609,56 @@
         nextStep(7);
     }
 
-    // ════════════════════════════════════════════════════════
-    //  KVDB — Guardar y cargar escalafón
-    //  Estrategia: una clave por usuario → escalafon:HASH_DNI
-    //  Listar con ?prefix=escalafon:&values=true
-    // ════════════════════════════════════════════════════════
+    // JSONBin helpers
     function hashId(str) {
-        // Hash simple para no exponer el DNI en las claves públicas
         let h = 0;
         for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
         return Math.abs(h).toString(36);
     }
 
+    async function leerBin() {
+        const res = await fetch(JSONBIN_URL + "/latest", {
+            headers: { "X-Master-Key": JSONBIN_KEY }
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const json = await res.json();
+        return json.record.lista || [];
+    }
+
+    async function escribirBin(lista) {
+        const res = await fetch(JSONBIN_URL, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Master-Key": JSONBIN_KEY
+            },
+            body: JSON.stringify({ lista })
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+    }
+
     async function guardarEnNube() {
-        const id   = document.getElementById('u_id').value.trim();
-        const spec = document.getElementById('u_spec').value.trim();
-        const esc  = document.getElementById('escala').value;
+        const id   = document.getElementById("u_id").value.trim();
+        const spec = document.getElementById("u_spec").value.trim();
+        const esc  = document.getElementById("escala").value;
 
         if (!id || !spec) return alert("Rellena el ID y la Especialidad.");
 
-        const btn = document.getElementById('btn-save');
+        const btn = document.getElementById("btn-save");
         btn.innerText = "Sincronizando con la nube...";
         btn.disabled = true;
 
-        // Clave única por usuario (hash del DNI para no exponer datos)
-        const userKey = `https://kvdb.io/${BUCKET_ID}/escalafon:${hashId(id)}`;
-        const payload = JSON.stringify({ spec, escala: esc, nota: notaGlobal });
-
         try {
-            // kvdb: POST con cuerpo de texto plano para establecer una clave
-            const saveRes = await fetch(userKey, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain' },
-                body: payload
-            });
-
-            if (!saveRes.ok) throw new Error(`HTTP ${saveRes.status}`);
-
-            alert("¡Tu nota se ha guardado en el listado global!");
-            document.getElementById('unlock-id').value = id;
-            showView('rank-view');
+            let lista = await leerBin();
+            const hash = hashId(id);
+            lista = lista.filter(u => u.hash !== hash);
+            lista.push({ hash, spec, escala: esc, nota: notaGlobal });
+            await escribirBin(lista);
+            alert("Tu nota se ha guardado en el listado global!");
+            document.getElementById("unlock-id").value = id;
+            showView("rank-view");
         } catch (e) {
-            alert("Error de conexión: " + e.message);
+            alert("Error de conexion: " + e.message);
             console.error(e);
         } finally {
             btn.innerText = "Publicar Nota y Ver Listado";
@@ -660,45 +667,29 @@
     }
 
     async function cargarRanking() {
-        const unlockId  = document.getElementById('unlock-id').value.trim();
-        const container = document.getElementById('tabla-html');
+        const unlockId  = document.getElementById("unlock-id").value.trim();
+        const container = document.getElementById("tabla-html");
 
         if (!unlockId) return alert("Escribe tu ID.");
         container.innerHTML = "<p style='text-align:center;'>Descargando listado...</p>";
 
-        // Verificar que el usuario ha publicado su nota
-        const userKey = `https://kvdb.io/${BUCKET_ID}/escalafon:${hashId(unlockId)}`;
-
         try {
-            const checkRes = await fetch(userKey);
-            if (!checkRes.ok) {
+            const lista = await leerBin();
+            const hash  = hashId(unlockId);
+
+            if (!lista.some(u => u.hash === hash)) {
                 alert("Acceso denegado: debes publicar tu nota primero para ver el listado.");
                 container.innerHTML = "";
                 return;
             }
 
-            // Listar todas las claves con prefijo "escalafon:" y obtener sus valores
-            const listUrl = `https://kvdb.io/${BUCKET_ID}/?prefix=escalafon:&values=true`;
-            const listRes = await fetch(listUrl);
-            if (!listRes.ok) throw new Error(`HTTP ${listRes.status}`);
+            document.getElementById("rank-lock").style.display    = "none";
+            document.getElementById("rank-content").style.display = "block";
 
-            const text = await listRes.text();
-            // Formato de respuesta: "clave\tvalor\n" por cada entrada
-            const data = text.trim().split('\n')
-                .filter(line => line.includes('\t'))
-                .map(line => {
-                    try { return JSON.parse(line.split('\t')[1]); }
-                    catch { return null; }
-                })
-                .filter(Boolean);
-
-            document.getElementById('rank-lock').style.display    = 'none';
-            document.getElementById('rank-content').style.display = 'block';
-
-            if (data.length === 0) {
-                container.innerHTML = "<p style='text-align:center;color:var(--muted);'>El listado está vacío todavía.</p>";
+            if (lista.length === 0) {
+                container.innerHTML = "<p style='text-align:center;color:var(--muted);'>El listado esta vacio todavia.</p>";
             } else {
-                renderTable(data);
+                renderTable(lista);
             }
         } catch (e) {
             alert("Error de red: " + e.message);
