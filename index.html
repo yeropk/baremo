@@ -641,11 +641,11 @@
 </div>
 
 <script>
-// ══ JSONBin ════════════════════════════════════════════════
-const JSONBIN_ID  = "6a199064ddf5aa59f77459c9";
-const JSONBIN_KEY = "$2a$10$hyLvjarGqY7nr3FcwQ3G9uRKEoxgH4mZnhH99Kra.wv6dr1bBd5B.";
-const JSONBIN_URL = "https://api.jsonbin.io/v3/b/" + JSONBIN_ID;
+// ══ API (Cloudflare Worker — sin claves expuestas) ════════
+// Sustituye esta URL por la de tu Worker tras desplegarlo:
+const API = "baremo-proxy.gascongs.workers.dev";
 let notaGlobal = 0;
+let currentUserHash = null;  // hash del usuario logueado, para resaltarlo
 
 // ══ Helpers ════════════════════════════════════════════════
 const $ = id => document.getElementById(id);
@@ -1060,31 +1060,28 @@ function hashId(str) {
     return Math.abs(h).toString(36);
 }
 async function leerBinCompleto() {
-    const res = await fetch(JSONBIN_URL + "/latest", { headers: { "X-Master-Key": JSONBIN_KEY } });
+    const res = await fetch(API + "/datos");
     if (!res.ok) throw new Error("HTTP " + res.status);
-    const rec = (await res.json()).record;
+    const rec = await res.json();
     return { lista: rec.lista || [], incidencias: rec.incidencias || [] };
 }
 async function leerBin() {
     return (await leerBinCompleto()).lista;
 }
 async function escribirBin(lista) {
-    // Preserva incidencias al sobreescribir
     const actual = await leerBinCompleto();
-    const res = await fetch(JSONBIN_URL, {
+    const res = await fetch(API + "/datos", {
         method: "PUT",
-        headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lista, incidencias: actual.incidencias })
     });
     if (!res.ok) throw new Error("HTTP " + res.status);
 }
 async function guardarIncidencia(incidencia) {
-    const actual = await leerBinCompleto();
-    actual.incidencias.push(incidencia);
-    const res = await fetch(JSONBIN_URL, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
-        body: JSON.stringify({ lista: actual.lista, incidencias: actual.incidencias })
+    const res = await fetch(API + "/incidencia", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(incidencia)
     });
     if (!res.ok) throw new Error("HTTP " + res.status);
 }
@@ -1102,6 +1099,7 @@ async function guardarEnNube() {
         lista = lista.filter(u => u.hash !== hash);
         lista.push({ hash, spec, escala: esc, proceso: proc, nota: notaGlobal });
         await escribirBin(lista);
+        currentUserHash = hash;
         alert("Nota guardada en el escalafón global.");
         $("unlock-id").value = id;
         showView("rank-view", null);
@@ -1137,6 +1135,7 @@ async function cargarRanking() {
             alert("Acceso denegado: publica tu nota primero.");
             container.innerHTML = ""; return;
         }
+        currentUserHash = hashId(unlockId);
         $("rank-lock").style.display    = "none";
         $("rank-content").style.display = "block";
         lista.length === 0
@@ -1246,9 +1245,9 @@ async function borrarRegistro(hash) {
     try {
         const actual = await leerBinCompleto();
         actual.lista = actual.lista.filter(u => u.hash !== hash);
-        const res = await fetch(JSONBIN_URL, {
+        const res = await fetch(API + "/datos", {
             method: "PUT",
-            headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(actual)
         });
         if (!res.ok) throw new Error("HTTP " + res.status);
@@ -1261,9 +1260,9 @@ async function borrarIncidencia(id) {
     try {
         const actual = await leerBinCompleto();
         actual.incidencias = actual.incidencias.filter(i => i.id !== id);
-        const res = await fetch(JSONBIN_URL, {
+        const res = await fetch(API + "/datos", {
             method: "PUT",
-            headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(actual)
         });
         if (!res.ok) throw new Error("HTTP " + res.status);
@@ -1276,9 +1275,9 @@ async function vaciarLista() {
     try {
         const actual = await leerBinCompleto();
         actual.lista = [];
-        const res = await fetch(JSONBIN_URL, {
+        const res = await fetch(API + "/datos", {
             method: "PUT",
-            headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(actual)
         });
         if (!res.ok) throw new Error("HTTP " + res.status);
@@ -1292,10 +1291,19 @@ function renderTable(data) {
     data.sort((a,b) => b.nota - a.nota);
     let html = `<table><thead><tr><th>#</th><th>Especialidad / Proceso</th><th>Puntuación</th></tr></thead><tbody>`;
     data.forEach((u, i) => {
-        const tc = tagColor[u.escala] || "tag-sub";
-        const tl = tagLabel[u.escala] || u.escala.toUpperCase();
+        const tc   = tagColor[u.escala] || "tag-sub";
+        const tl   = tagLabel[u.escala] || u.escala.toUpperCase();
         const proc = u.proceso ? ` <small style="color:var(--muted)">(${u.proceso.replace(/_/g," ")})</small>` : "";
-        html += `<tr><td style="color:var(--muted)">${i+1}</td><td><span class="tag ${tc}">${tl}</span> <b>${u.spec}</b>${proc}</td><td style="color:var(--primary);font-weight:800;font-size:1.1rem">${parseFloat(u.nota).toFixed(3)}</td></tr>`;
+        const isMe = currentUserHash && u.hash === currentUserHash;
+        const rowStyle = isMe
+            ? 'background:linear-gradient(90deg,#e0f2fe,#f0fdf4);border-left:4px solid var(--secondary);'
+            : '';
+        const yoTag = isMe ? ' <span style="background:var(--secondary);color:white;padding:1px 7px;border-radius:10px;font-size:.7rem;font-weight:700;margin-left:4px">TÚ</span>' : '';
+        html += `<tr style="${rowStyle}">
+            <td style="color:var(--muted);font-weight:${isMe?'800':'400'}">${i+1}</td>
+            <td><span class="tag ${tc}">${tl}</span> <b>${u.spec}</b>${proc}${yoTag}</td>
+            <td style="color:var(--primary);font-weight:800;font-size:1.1rem">${parseFloat(u.nota).toFixed(3)}</td>
+        </tr>`;
     });
     html += `</tbody></table>`;
     $("tabla-html").innerHTML = html;
