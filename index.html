@@ -86,7 +86,7 @@
             <div class="instruc-item"><div class="instruc-num">1</div><div><b>Selecciona tu escala y proceso</b> en el Paso 1. Si eres Suboficial, elige además el tipo de proceso (Promoción Interna, Ingreso Directo con o sin TS), ya que cada uno tiene una baremación diferente.</div></div>
             <div class="instruc-item"><div class="instruc-num">2</div><div><b>Rellena cada paso con tus datos reales.</b> Para el tiempo de servicios, introduce solo los meses completos. Los días que no completen un mes no se computan.</div></div>
             <div class="instruc-item"><div class="instruc-num">3</div><div><b>IPEC (Informes de Calificación):</b> introduce la nota global de tus dos últimos informes disponibles. Si tu informe usa letras, la equivalencia es: A=9,5 · B=8,5 · C=7,5 · D=6,5 · E=4.</div></div>
-            <div class="instruc-item"><div class="instruc-num">4</div><div><b>Al publicar tu nota, tu identificación es confidencial.</b> El NIO o ID que introduzcas se convierte en un código anónimo antes de guardarse; nadie podrá asociar tu puntuación con tu identidad.</div></div>
+            <div class="instruc-item"><div class="instruc-num">4</div><div><b>Al publicar tu nota, tu identificación es confidencial.</b> El DNI o ID que introduzcas se convierte en un código anónimo antes de guardarse; nadie podrá asociar tu puntuación con tu identidad.</div></div>
             <div class="instruc-item"><div class="instruc-num">5</div><div><b>Para rectificar errores</b>, simplemente vuelve a calcular y publica con el mismo ID. Tu entrada anterior se sustituirá automáticamente por la nueva.</div></div>
             <div class="instruc-item"><div class="instruc-num">6</div><div><b>Para ver el escalafón global</b> debes haber publicado tu nota previamente. Accede con el mismo ID con el que publicaste.</div></div>
             <div class="instruc-item"><div class="instruc-num">7</div><div><b>Si detectas un error en la baremación</b>, usa el botón <span style="background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:4px;font-size:.85rem">⚠️ Reportar Incidencia</span> para comunicarlo. Los administradores lo revisarán.</div></div>
@@ -596,10 +596,9 @@
     <div class="desglose-box" id="desglose-detalle"></div>
     <hr style="border:1px solid var(--border);margin:25px 0">
     <h3 style="margin-bottom:10px">Únete al Escalafón Global</h3>
-    <p style="font-size:.85rem;color:var(--muted);margin-bottom:15px">Guarda tu nota de forma anónima para ver en qué posición quedas. Tu ID
-        no se mostrará públicamente.</p>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:15px">Guarda tu nota de forma anónima para ver en qué posición quedas. Tu DNI no se mostrará públicamente.</p>
     <div class="grid-2">
-        <div class="input-group"><label>ID Privado (NIO):</label><input type="text" id="u_id" placeholder="1234"></div>
+        <div class="input-group"><label>ID Privado (DNI):</label><input type="text" id="u_id" placeholder="12345678A"></div>
         <div class="input-group"><label>Cuerpo / Especialidad:</label><input type="text" id="u_spec" placeholder="ET - Transmisiones"></div>
     </div>
     <button class="btn btn-primary" style="width:100%" id="btn-save" onclick="guardarEnNube()">Publicar Nota y Ver Listado</button>
@@ -616,7 +615,7 @@
             <!-- Login -->
             <div id="rank-lock">
                 <p style="font-size:.9rem;color:var(--muted)">Introduce tu ID Privado para acceder al listado.</p>
-                <div class="input-group" style="margin-top:15px"><input type="text" id="unlock-id" placeholder="Tu NIO/ID Privado"></div>
+                <div class="input-group" style="margin-top:15px"><input type="text" id="unlock-id" placeholder="Tu DNI/ID Privado"></div>
                 <button class="btn btn-primary" style="width:100%" onclick="cargarRanking()">Entrar al Listado</button>
             </div>
 
@@ -642,11 +641,11 @@
 </div>
 
 <script>
-// ══ JSONBin ════════════════════════════════════════════════
-const JSONBIN_ID  = "6a199064ddf5aa59f77459c9";
-const JSONBIN_KEY = "$2a$10$hyLvjarGqY7nr3FcwQ3G9uRKEoxgH4mZnhH99Kra.wv6dr1bBd5B.";
-const JSONBIN_URL = "https://api.jsonbin.io/v3/b/" + JSONBIN_ID;
+// ══ API (Cloudflare Worker — sin claves expuestas) ════════
+// Sustituye esta URL por la de tu Worker tras desplegarlo:
+const API = "https://baremo-proxy.gascongs.workers.dev";
 let notaGlobal = 0;
+let currentUserHash = null;  // hash del usuario logueado, para resaltarlo
 
 // ══ Helpers ════════════════════════════════════════════════
 const $ = id => document.getElementById(id);
@@ -1061,31 +1060,28 @@ function hashId(str) {
     return Math.abs(h).toString(36);
 }
 async function leerBinCompleto() {
-    const res = await fetch(JSONBIN_URL + "/latest", { headers: { "X-Master-Key": JSONBIN_KEY } });
+    const res = await fetch(API + "/datos");
     if (!res.ok) throw new Error("HTTP " + res.status);
-    const rec = (await res.json()).record;
+    const rec = await res.json();
     return { lista: rec.lista || [], incidencias: rec.incidencias || [] };
 }
 async function leerBin() {
     return (await leerBinCompleto()).lista;
 }
 async function escribirBin(lista) {
-    // Preserva incidencias al sobreescribir
     const actual = await leerBinCompleto();
-    const res = await fetch(JSONBIN_URL, {
+    const res = await fetch(API + "/datos", {
         method: "PUT",
-        headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lista, incidencias: actual.incidencias })
     });
     if (!res.ok) throw new Error("HTTP " + res.status);
 }
 async function guardarIncidencia(incidencia) {
-    const actual = await leerBinCompleto();
-    actual.incidencias.push(incidencia);
-    const res = await fetch(JSONBIN_URL, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
-        body: JSON.stringify({ lista: actual.lista, incidencias: actual.incidencias })
+    const res = await fetch(API + "/incidencia", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(incidencia)
     });
     if (!res.ok) throw new Error("HTTP " + res.status);
 }
@@ -1103,6 +1099,7 @@ async function guardarEnNube() {
         lista = lista.filter(u => u.hash !== hash);
         lista.push({ hash, spec, escala: esc, proceso: proc, nota: notaGlobal });
         await escribirBin(lista);
+        currentUserHash = hash;
         alert("Nota guardada en el escalafón global.");
         $("unlock-id").value = id;
         showView("rank-view", null);
@@ -1138,6 +1135,7 @@ async function cargarRanking() {
             alert("Acceso denegado: publica tu nota primero.");
             container.innerHTML = ""; return;
         }
+        currentUserHash = hashId(unlockId);
         $("rank-lock").style.display    = "none";
         $("rank-content").style.display = "block";
         lista.length === 0
@@ -1247,9 +1245,9 @@ async function borrarRegistro(hash) {
     try {
         const actual = await leerBinCompleto();
         actual.lista = actual.lista.filter(u => u.hash !== hash);
-        const res = await fetch(JSONBIN_URL, {
+        const res = await fetch(API + "/datos", {
             method: "PUT",
-            headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(actual)
         });
         if (!res.ok) throw new Error("HTTP " + res.status);
@@ -1262,9 +1260,9 @@ async function borrarIncidencia(id) {
     try {
         const actual = await leerBinCompleto();
         actual.incidencias = actual.incidencias.filter(i => i.id !== id);
-        const res = await fetch(JSONBIN_URL, {
+        const res = await fetch(API + "/datos", {
             method: "PUT",
-            headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(actual)
         });
         if (!res.ok) throw new Error("HTTP " + res.status);
@@ -1277,9 +1275,9 @@ async function vaciarLista() {
     try {
         const actual = await leerBinCompleto();
         actual.lista = [];
-        const res = await fetch(JSONBIN_URL, {
+        const res = await fetch(API + "/datos", {
             method: "PUT",
-            headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(actual)
         });
         if (!res.ok) throw new Error("HTTP " + res.status);
@@ -1293,10 +1291,19 @@ function renderTable(data) {
     data.sort((a,b) => b.nota - a.nota);
     let html = `<table><thead><tr><th>#</th><th>Especialidad / Proceso</th><th>Puntuación</th></tr></thead><tbody>`;
     data.forEach((u, i) => {
-        const tc = tagColor[u.escala] || "tag-sub";
-        const tl = tagLabel[u.escala] || u.escala.toUpperCase();
+        const tc   = tagColor[u.escala] || "tag-sub";
+        const tl   = tagLabel[u.escala] || u.escala.toUpperCase();
         const proc = u.proceso ? ` <small style="color:var(--muted)">(${u.proceso.replace(/_/g," ")})</small>` : "";
-        html += `<tr><td style="color:var(--muted)">${i+1}</td><td><span class="tag ${tc}">${tl}</span> <b>${u.spec}</b>${proc}</td><td style="color:var(--primary);font-weight:800;font-size:1.1rem">${parseFloat(u.nota).toFixed(3)}</td></tr>`;
+        const isMe = currentUserHash && u.hash === currentUserHash;
+        const rowStyle = isMe
+            ? 'background:linear-gradient(90deg,#e0f2fe,#f0fdf4);border-left:4px solid var(--secondary);'
+            : '';
+        const yoTag = isMe ? ' <span style="background:var(--secondary);color:white;padding:1px 7px;border-radius:10px;font-size:.7rem;font-weight:700;margin-left:4px">TÚ</span>' : '';
+        html += `<tr style="${rowStyle}">
+            <td style="color:var(--muted);font-weight:${isMe?'800':'400'}">${i+1}</td>
+            <td><span class="tag ${tc}">${tl}</span> <b>${u.spec}</b>${proc}${yoTag}</td>
+            <td style="color:var(--primary);font-weight:800;font-size:1.1rem">${parseFloat(u.nota).toFixed(3)}</td>
+        </tr>`;
     });
     html += `</tbody></table>`;
     $("tabla-html").innerHTML = html;
