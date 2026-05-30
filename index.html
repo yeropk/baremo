@@ -43,6 +43,24 @@
         .tag-of  { background:#dbeafe; color:#1d4ed8; }
         .tag-sub { background:#dcfce7; color:#15803d; }
         .tag-cc  { background:#fef3c7; color:#d97706; }
+        /* Top bar */
+        .top-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; }
+        .top-bar-left { display:flex; gap:8px; }
+        .btn-top { padding:8px 14px; border:none; border-radius:8px; cursor:pointer; font-size:.82rem; font-weight:600; transition:.2s; }
+        .btn-top:hover { opacity:.85; }
+        .btn-instruc { background:#e0f2fe; color:#0369a1; }
+        .btn-incid   { background:#fee2e2; color:#dc2626; }
+        /* Modal overlay */
+        .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; justify-content:center; align-items:center; padding:20px; }
+        .modal-overlay.open { display:flex; }
+        .modal-box { background:#fff; border-radius:16px; padding:28px; max-width:560px; width:100%; max-height:90vh; overflow-y:auto; position:relative; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+        .modal-box h3 { margin-top:0; color:var(--primary); border-bottom:2px solid var(--primary); padding-bottom:8px; }
+        .modal-close { position:absolute; top:14px; right:18px; background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--muted); }
+        .modal-close:hover { color:var(--text); }
+        .instruc-item { display:flex; gap:10px; margin-bottom:12px; align-items:flex-start; font-size:.9rem; line-height:1.5; }
+        .instruc-num { background:var(--primary); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; flex-shrink:0; margin-top:1px; }
+        textarea { width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; box-sizing:border-box; font-size:.9rem; font-family:inherit; resize:vertical; }
+        .incid-badge { background:#dc2626; color:white; border-radius:50%; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:.7rem; font-weight:700; margin-left:5px; vertical-align:middle; }
     </style>
 </head>
 <body>
@@ -51,6 +69,61 @@
         <button class="nav-btn active" onclick="showView('calc-view',event)">Calculadora</button>
         <button class="nav-btn" onclick="showView('rank-view',event)">Escalafón Global</button>
     </nav>
+
+    <!-- Top bar -->
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <button class="btn-top btn-instruc" onclick="$('modal-instruc').classList.add('open')">📋 Instrucciones</button>
+        </div>
+        <button class="btn-top btn-incid" onclick="$('modal-incid').classList.add('open')">⚠️ Reportar Incidencia</button>
+    </div>
+
+    <!-- Modal Instrucciones -->
+    <div class="modal-overlay" id="modal-instruc" onclick="cerrarModalFondo(event,'modal-instruc')">
+        <div class="modal-box">
+            <button class="modal-close" onclick="$('modal-instruc').classList.remove('open')">×</button>
+            <h3>📋 Instrucciones de uso</h3>
+            <div class="instruc-item"><div class="instruc-num">1</div><div><b>Selecciona tu escala y proceso</b> en el Paso 1. Si eres Suboficial, elige además el tipo de proceso (Promoción Interna, Ingreso Directo con o sin TS), ya que cada uno tiene una baremación diferente.</div></div>
+            <div class="instruc-item"><div class="instruc-num">2</div><div><b>Rellena cada paso con tus datos reales.</b> Para el tiempo de servicios, introduce solo los meses completos. Los días que no completen un mes no se computan.</div></div>
+            <div class="instruc-item"><div class="instruc-num">3</div><div><b>IPEC (Informes de Calificación):</b> introduce la nota global de tus dos últimos informes disponibles. Si tu informe usa letras, la equivalencia es: A=9,5 · B=8,5 · C=7,5 · D=6,5 · E=4.</div></div>
+            <div class="instruc-item"><div class="instruc-num">4</div><div><b>Al publicar tu nota, tu identificación es confidencial.</b> El DNI o ID que introduzcas se convierte en un código anónimo antes de guardarse; nadie podrá asociar tu puntuación con tu identidad.</div></div>
+            <div class="instruc-item"><div class="instruc-num">5</div><div><b>Para rectificar errores</b>, simplemente vuelve a calcular y publica con el mismo ID. Tu entrada anterior se sustituirá automáticamente por la nueva.</div></div>
+            <div class="instruc-item"><div class="instruc-num">6</div><div><b>Para ver el escalafón global</b> debes haber publicado tu nota previamente. Accede con el mismo ID con el que publicaste.</div></div>
+            <div class="instruc-item"><div class="instruc-num">7</div><div><b>Si detectas un error en la baremación</b>, usa el botón <span style="background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:4px;font-size:.85rem">⚠️ Reportar Incidencia</span> para comunicarlo. Los administradores lo revisarán.</div></div>
+            <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px;margin-top:10px;font-size:.82rem;color:#166534;">
+                <b>ℹ️ Nota legal:</b> Esta herramienta es de uso orientativo. La baremación oficial y definitiva corresponde en todo caso a los órganos competentes del Ministerio de Defensa.
+            </div>
+            <button class="btn btn-primary" style="width:100%;margin-top:18px" onclick="$('modal-instruc').classList.remove('open')">Entendido</button>
+        </div>
+    </div>
+
+    <!-- Modal Incidencias -->
+    <div class="modal-overlay" id="modal-incid" onclick="cerrarModalFondo(event,'modal-incid')">
+        <div class="modal-box">
+            <button class="modal-close" onclick="$('modal-incid').classList.remove('open')">×</button>
+            <h3>⚠️ Reportar una Incidencia</h3>
+            <p style="font-size:.9rem;color:var(--muted)">Si has detectado un error en la baremación, un fallo técnico o cualquier problema, descríbelo aquí. Tu reporte será anónimo.</p>
+            <div class="input-group">
+                <label>Tipo de incidencia:</label>
+                <select id="incid-tipo">
+                    <option value="error_calculo">Error en el cálculo / fórmula</option>
+                    <option value="error_puntuacion">Puntuación incorrecta en algún mérito</option>
+                    <option value="fallo_tecnico">Fallo técnico / la página no funciona correctamente</option>
+                    <option value="normativa">Discrepancia con la normativa oficial</option>
+                    <option value="otro">Otro</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>Descripción:</label>
+                <textarea id="incid-desc" rows="4" placeholder="Describe el problema con el mayor detalle posible..."></textarea>
+            </div>
+            <div id="incid-feedback" style="display:none;" class="info-box"></div>
+            <div class="btn-group" style="margin-top:10px">
+                <button class="btn btn-outline" onclick="$('modal-incid').classList.remove('open')">Cancelar</button>
+                <button class="btn btn-primary" id="btn-incid-enviar" onclick="enviarIncidencia()">Enviar Reporte</button>
+            </div>
+        </div>
+    </div>
 
     <div id="calc-view" class="view active">
         <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
@@ -523,9 +596,9 @@
     <div class="desglose-box" id="desglose-detalle"></div>
     <hr style="border:1px solid var(--border);margin:25px 0">
     <h3 style="margin-bottom:10px">Únete al Escalafón Global</h3>
-    <p style="font-size:.85rem;color:var(--muted);margin-bottom:15px">Guarda tu nota de forma anónima para ver en qué posición quedas. Tu NIO no se mostrará públicamente.</p>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:15px">Guarda tu nota de forma anónima para ver en qué posición quedas. Tu DNI no se mostrará públicamente.</p>
     <div class="grid-2">
-        <div class="input-group"><label>Número de opositor (NIO):</label><input type="text" id="u_id" placeholder="12345678A"></div>
+        <div class="input-group"><label>ID Privado (DNI):</label><input type="text" id="u_id" placeholder="12345678A"></div>
         <div class="input-group"><label>Cuerpo / Especialidad:</label><input type="text" id="u_spec" placeholder="ET - Transmisiones"></div>
     </div>
     <button class="btn btn-primary" style="width:100%" id="btn-save" onclick="guardarEnNube()">Publicar Nota y Ver Listado</button>
@@ -538,14 +611,37 @@
     <div id="rank-view" class="view" style="display:none;">
         <div class="card">
             <h2>Escalafón Global</h2>
+
+            <!-- Login -->
             <div id="rank-lock">
                 <p style="font-size:.9rem;color:var(--muted)">Introduce tu ID Privado para acceder al listado.</p>
-                <div class="input-group" style="margin-top:15px"><input type="text" id="unlock-id" placeholder="Tu NIO Privado"></div>
+                <div class="input-group" style="margin-top:15px"><input type="text" id="unlock-id" placeholder="Tu DNI/ID Privado"></div>
                 <button class="btn btn-primary" style="width:100%" onclick="cargarRanking()">Entrar al Listado</button>
+                <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:15px;">
+                    <p style="font-size:.8rem;color:var(--muted);margin-bottom:8px">¿Eres el administrador?</p>
+                    <div class="grid-2">
+                        <input type="password" id="admin-pin" placeholder="PIN de administrador" style="padding:10px;border:1px solid var(--border);border-radius:8px;font-size:.95rem;">
+                        <button class="btn btn-outline" onclick="entrarAdmin()">Entrar como Admin</button>
+                    </div>
+                </div>
             </div>
+
+            <!-- Vista normal -->
             <div id="rank-content" style="display:none;">
                 <div id="tabla-html"></div>
-                <button class="btn btn-outline" style="width:100%;margin-top:20px" onclick="document.getElementById('rank-lock').style.display='block';document.getElementById('rank-content').style.display='none'">Cerrar Sesión</button>
+                <button class="btn btn-outline" style="width:100%;margin-top:20px" onclick="cerrarSesion()">Cerrar Sesión</button>
+            </div>
+
+            <!-- Vista admin -->
+            <div id="rank-admin" style="display:none;">
+                <div class="warn-box" style="margin-bottom:15px;">
+                    <b>Modo Administrador</b> — Puedes eliminar registros individuales o vaciar toda la lista.
+                </div>
+                <div id="tabla-admin"></div>
+                <div style="display:flex;gap:10px;margin-top:20px;">
+                    <button class="btn btn-outline" style="flex:1" onclick="cerrarSesion()">Cerrar Sesión Admin</button>
+                    <button class="btn" style="flex:1;background:#dc2626;color:white;font-weight:bold" onclick="vaciarLista()">🗑 Vaciar Lista Completa</button>
+                </div>
             </div>
         </div>
     </div>
@@ -970,16 +1066,32 @@ function hashId(str) {
     for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
     return Math.abs(h).toString(36);
 }
-async function leerBin() {
+async function leerBinCompleto() {
     const res = await fetch(JSONBIN_URL + "/latest", { headers: { "X-Master-Key": JSONBIN_KEY } });
     if (!res.ok) throw new Error("HTTP " + res.status);
-    return (await res.json()).record.lista || [];
+    const rec = (await res.json()).record;
+    return { lista: rec.lista || [], incidencias: rec.incidencias || [] };
+}
+async function leerBin() {
+    return (await leerBinCompleto()).lista;
 }
 async function escribirBin(lista) {
+    // Preserva incidencias al sobreescribir
+    const actual = await leerBinCompleto();
     const res = await fetch(JSONBIN_URL, {
         method: "PUT",
         headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
-        body: JSON.stringify({ lista })
+        body: JSON.stringify({ lista, incidencias: actual.incidencias })
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+}
+async function guardarIncidencia(incidencia) {
+    const actual = await leerBinCompleto();
+    actual.incidencias.push(incidencia);
+    const res = await fetch(JSONBIN_URL, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
+        body: JSON.stringify({ lista: actual.lista, incidencias: actual.incidencias })
     });
     if (!res.ok) throw new Error("HTTP " + res.status);
 }
@@ -1027,6 +1139,156 @@ async function cargarRanking() {
             : renderTable(lista);
     } catch (e) { alert("Error: " + e.message); container.innerHTML = ""; }
 }
+// PIN de administrador (cámbialo si quieres)
+const ADMIN_PIN = "fas2026";
+let modoAdmin = false;
+
+// ══ Modales ══════════════════════════════════════════════
+function cerrarModalFondo(event, id) {
+    if (event.target === $(id)) $(id).classList.remove("open");
+}
+
+// ══ Incidencias ══════════════════════════════════════════
+async function enviarIncidencia() {
+    const desc = $("incid-desc").value.trim();
+    if (!desc) return alert("Por favor escribe una descripción.");
+    const btn = $("btn-incid-enviar");
+    btn.innerText = "Enviando..."; btn.disabled = true;
+    try {
+        const incidencia = {
+            id: Date.now().toString(36),
+            tipo: $("incid-tipo").value,
+            desc,
+            fecha: new Date().toLocaleString("es-ES")
+        };
+        await guardarIncidencia(incidencia);
+        $("incid-feedback").style.display = "block";
+        $("incid-feedback").textContent = "✅ Incidencia enviada correctamente. Gracias por tu reporte.";
+        $("incid-desc").value = "";
+    } catch(e) {
+        alert("Error al enviar: " + e.message);
+    } finally {
+        btn.innerText = "Enviar Reporte"; btn.disabled = false;
+    }
+}
+
+function cerrarSesion() {
+    $("rank-lock").style.display    = "block";
+    $("rank-content").style.display = "none";
+    $("rank-admin").style.display   = "none";
+    modoAdmin = false;
+}
+
+function entrarAdmin() {
+    const pin = $("admin-pin").value.trim();
+    if (pin !== ADMIN_PIN) return alert("PIN incorrecto.");
+    $("rank-lock").style.display    = "none";
+    $("rank-content").style.display = "none";
+    $("rank-admin").style.display   = "block";
+    modoAdmin = true;
+    cargarTablaAdmin();
+}
+
+async function cargarTablaAdmin() {
+    $("tabla-admin").innerHTML = "<p style='text-align:center'>Cargando...</p>";
+    try {
+        const { lista, incidencias } = await leerBinCompleto();
+        renderAdmin(lista, incidencias);
+    } catch(e) { alert("Error: " + e.message); }
+}
+
+function renderAdmin(data, incidencias) {
+    const tagColor = { oficial:"tag-of", suboficial:"tag-sub", cuerpos_comunes:"tag-cc" };
+    const tagLabel = { oficial:"OFICIAL", suboficial:"SUBOFICIAL", cuerpos_comunes:"CC" };
+    data = data || [];
+    incidencias = incidencias || [];
+    data.sort((a,b) => b.nota - a.nota);
+
+    // Escalafon table
+    let html = `<h4 style="color:var(--primary);margin-bottom:8px">Escalafon (${data.length} registros)</h4>`;
+    if (data.length === 0) {
+        html += "<p style='color:var(--muted);font-size:.9rem'>Sin registros.</p>";
+    } else {
+        html += `<div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Especialidad / Proceso</th><th>Pts</th><th></th></tr></thead><tbody>`;
+        data.forEach((u, i) => {
+            const tc = tagColor[u.escala] || "tag-sub";
+            const tl = tagLabel[u.escala] || u.escala.toUpperCase();
+            const proc = u.proceso ? `<br><small style="color:var(--muted)">${u.proceso.replace(/_/g," ")}</small>` : "";
+            html += `<tr>
+                <td style="color:var(--muted)">${i+1}</td>
+                <td><span class="tag ${tc}">${tl}</span> <b>${u.spec}</b>${proc}</td>
+                <td style="color:var(--primary);font-weight:800">${parseFloat(u.nota).toFixed(3)}</td>
+                <td><button onclick="borrarRegistro('${u.hash}')" style="background:#dc2626;color:white;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:.85rem">x</button></td>
+            </tr>`;
+        });
+        html += `</tbody></table></div>`;
+    }
+
+    // Incidencias table
+    const tipoLabel = { error_calculo:"Error calculo", error_puntuacion:"Puntuacion incorrecta", fallo_tecnico:"Fallo tecnico", normativa:"Discrepancia normativa", otro:"Otro" };
+    html += `<h4 style="color:#dc2626;margin-top:24px;margin-bottom:8px">Incidencias (${incidencias.length})</h4>`;
+    if (incidencias.length === 0) {
+        html += "<p style='color:var(--muted);font-size:.9rem'>Sin incidencias.</p>";
+    } else {
+        html += `<div style="overflow-x:auto"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Descripcion</th><th></th></tr></thead><tbody>`;
+        incidencias.forEach((inc) => {
+            html += `<tr>
+                <td style="font-size:.78rem;color:var(--muted);white-space:nowrap">${inc.fecha}</td>
+                <td><span style="font-size:.78rem;background:#fee2e2;color:#dc2626;padding:2px 5px;border-radius:4px">${tipoLabel[inc.tipo]||inc.tipo}</span></td>
+                <td style="font-size:.85rem">${inc.desc}</td>
+                <td><button onclick="borrarIncidencia('${inc.id}')" style="background:#6b7280;color:white;border:none;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:.8rem">x</button></td>
+            </tr>`;
+        });
+        html += `</tbody></table></div>`;
+    }
+    $("tabla-admin").innerHTML = html;
+}
+
+async function borrarRegistro(hash) {
+    if (!confirm("Eliminar este registro?")) return;
+    try {
+        const actual = await leerBinCompleto();
+        actual.lista = actual.lista.filter(u => u.hash !== hash);
+        const res = await fetch(JSONBIN_URL, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
+            body: JSON.stringify(actual)
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        renderAdmin(actual.lista, actual.incidencias);
+    } catch(e) { alert("Error: " + e.message); }
+}
+
+async function borrarIncidencia(id) {
+    if (!confirm("¿Eliminar esta incidencia?")) return;
+    try {
+        const actual = await leerBinCompleto();
+        actual.incidencias = actual.incidencias.filter(i => i.id !== id);
+        const res = await fetch(JSONBIN_URL, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
+            body: JSON.stringify(actual)
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        renderAdmin(actual.lista, actual.incidencias);
+    } catch(e) { alert("Error: " + e.message); }
+}
+
+async function vaciarLista() {
+    if (!confirm("¿Seguro que quieres VACIAR toda la lista de escalafón? Las incidencias se conservarán.")) return;
+    try {
+        const actual = await leerBinCompleto();
+        actual.lista = [];
+        const res = await fetch(JSONBIN_URL, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
+            body: JSON.stringify(actual)
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        renderAdmin([], actual.incidencias);
+    } catch(e) { alert("Error: " + e.message); }
+}
+
 function renderTable(data) {
     const tagColor = { oficial:"tag-of", suboficial:"tag-sub", cuerpos_comunes:"tag-cc" };
     const tagLabel = { oficial:"OFICIAL", suboficial:"SUBOFICIAL", cuerpos_comunes:"CC" };
@@ -1035,7 +1297,7 @@ function renderTable(data) {
     data.forEach((u, i) => {
         const tc = tagColor[u.escala] || "tag-sub";
         const tl = tagLabel[u.escala] || u.escala.toUpperCase();
-        const proc = u.proceso ? ` <small style="color:var(--muted)">(${u.proceso.replace("_"," ")})</small>` : "";
+        const proc = u.proceso ? ` <small style="color:var(--muted)">(${u.proceso.replace(/_/g," ")})</small>` : "";
         html += `<tr><td style="color:var(--muted)">${i+1}</td><td><span class="tag ${tc}">${tl}</span> <b>${u.spec}</b>${proc}</td><td style="color:var(--primary);font-weight:800;font-size:1.1rem">${parseFloat(u.nota).toFixed(3)}</td></tr>`;
     });
     html += `</tbody></table>`;
