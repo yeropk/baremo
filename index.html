@@ -61,6 +61,13 @@
         .instruc-num { background:var(--primary); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; flex-shrink:0; margin-top:1px; }
         textarea { width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; box-sizing:border-box; font-size:.9rem; font-family:inherit; resize:vertical; }
         .incid-badge { background:#dc2626; color:white; border-radius:50%; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:.7rem; font-weight:700; margin-left:5px; vertical-align:middle; }
+        .spec-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+        .spec-row select { flex:1; }
+        .spec-row .num { background:var(--primary); color:white; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; flex-shrink:0; }
+        .spec-row .rm-btn { background:#fee2e2; color:#dc2626; border:none; border-radius:6px; padding:6px 10px; cursor:pointer; font-size:.85rem; font-weight:bold; }
+        .sort-bar { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+        .sort-btn { padding:6px 12px; border:1px solid var(--border); border-radius:6px; background:white; cursor:pointer; font-size:.82rem; font-weight:600; }
+        .sort-btn.active { background:var(--primary); color:white; border-color:var(--primary); }
     </style>
 </head>
 <body>
@@ -141,12 +148,27 @@
             <option value="cuerpos_comunes">Cuerpos Comunes (cambio de cuerpo/escala)</option>
         </select>
     </div>
+    <div class="input-group" id="bloque_proceso_of" style="display:none;">
+        <label>Proceso (Oficiales):</label>
+        <select id="proceso_of" onchange="onEscalaChange()">
+            <option value="promo_interna">Promoción Interna (Anexo III — BOE 2024)</option>
+            <option value="directo_con_tit">Ingreso Directo con exigencia de titulación (Anexo II)</option>
+            <option value="directo_sin_tit">Ingreso Directo sin exigencia de titulación (Anexo I)</option>
+        </select>
+    </div>
     <div class="input-group" id="bloque_proceso_sub" style="display:none;">
         <label>Proceso (Suboficiales):</label>
         <select id="proceso_sub" onchange="onEscalaChange()">
             <option value="promo_interna">Promoción Interna (Anexo III — BOE 2024)</option>
             <option value="directo_sin_ts">Ingreso Directo sin exigencia de Técnico Superior (Anexo I)</option>
             <option value="directo_con_ts">Ingreso Directo con exigencia de Técnico Superior (Anexo II)</option>
+        </select>
+    </div>
+    <div class="input-group" id="bloque_proceso_cc" style="display:none;">
+        <label>Proceso (Cuerpos Comunes):</label>
+        <select id="proceso_cc" onchange="onEscalaChange()">
+            <option value="cambio_cuerpo">Cambio de Cuerpo o Escala (Anexo II — BOE 2011)</option>
+            <option value="ingreso_directo">Ingreso Directo (Anexo I — BOE 2011)</option>
         </select>
     </div>
     <div id="resumen_proceso" class="info-box" style="margin-top:10px;"></div>
@@ -158,8 +180,14 @@
 <!-- ════════════ PASO 2 ════════════ -->
 <div class="step" id="step2">
     <h2>2. Tiempo de Servicios</h2>
-    <div id="info_t_oficial" class="info-box">
-        <b>Oficiales:</b> Militar carrera/complemento/Tropa: 0,05 pts/mes desde el 2.º año (máx. 4 pts). Reservista: 0,02/mes (máx. 1,2 pts). <b>Tope: 4 pts.</b>
+    <div id="info_t_of_promo" class="info-box">
+        <b>Oficiales — Promo Interna:</b> 0,05 pts/mes desde el 2.º año (máx. 4 pts). Reservista: 0,02/mes (máx. 1,2 pts). Tope: 4 pts. Misiones: 0,5/mes (máx. 5 pts).
+    </div>
+    <div id="info_t_of_con_tit" class="info-box" style="display:none;">
+        <b>Oficiales — Ingreso Directo con titulación:</b> 0,1 pts/mes (máx. 3 pts). Reservista: 0,02/mes (máx. 1,2 pts). <b>Tope: 3 pts. No se valoran misiones.</b>
+    </div>
+    <div id="info_t_of_sin_tit" class="info-box" style="display:none;">
+        <b>Oficiales — Ingreso Directo sin titulación (Anexo I):</b> VMM especial: 0,025 pts/mes militar o 0,01 pts/mes reservista. <b>Máx. 0,5 pts. No se valoran misiones.</b>
     </div>
     <div id="info_t_sub_promo" class="info-box" style="display:none;">
         <b>Suboficiales — Promoción Interna:</b> Militar profesional: 0,05 pts/mes (máx. 8 pts conjuntos). Reservista: 0,02/mes (máx. 1,2 pts). Unidades especiales: hasta 0,10/mes. <b>Tope conjunto: 8 pts.</b>
@@ -170,8 +198,11 @@
     <div id="info_t_sub_con_ts" class="info-box" style="display:none;">
         <b>Suboficiales — Ingreso Directo con TS:</b> 0,05 pts/mes (militar) o 0,02/mes (reservista). <b>Tope máximo: 2,5 pts.</b>
     </div>
-    <div id="info_t_cc" class="info-box" style="display:none;">
-        <b>Cuerpos Comunes:</b> Militar profesional: 0,05 pts/mes (máx. 3 pts). Reservista: 0,02/mes (máx. 1,2 pts). <b>Tope: 4 pts.</b>
+    <div id="info_t_cc_cambio" class="info-box" style="display:none;">
+        <b>CC — Cambio de Cuerpo/Escala:</b> Militar profesional: 0,05 pts/mes (máx. 3 pts). Reservista: 0,02/mes (máx. 1,2 pts). <b>Tope: 4 pts.</b>
+    </div>
+    <div id="info_t_cc_dir" class="info-box" style="display:none;">
+        <b>CC — Ingreso Directo:</b> Militar carrera/complemento/Tropa: 0,1 pts/mes (máx. 3 pts). Reservista: 0,02/mes (máx. 1,2 pts). <b>Tope: 3 pts. No se valoran misiones.</b>
     </div>
 
     <div class="grid-2">
@@ -229,9 +260,29 @@
                 <label id="label_hermenegildo">Cruz San Hermenegildo / Constancia (2 pts):</label>
                 <input type="number" id="hermenegildo" value="0" min="0">
             </div>
-            <div class="input-group" id="sec_constancia">
-                <label>Cruz de Bronce a la Constancia (1,5 pts — solo Oficiales):</label>
-                <input type="number" id="cruz_constancia" value="0" min="0">
+            <div id="sec_constancia_of" style="display:none;">
+                <div class="grid-2">
+                    <div class="input-group">
+                        <label>Cruz de Bronce Constancia (1,5 pts):</label>
+                        <input type="number" id="cruz_constancia" value="0" min="0">
+                    </div>
+                    <div class="input-group">
+                        <label>Cruz de Plata Constancia (1 pt):</label>
+                        <input type="number" id="cruz_plata_constancia" value="0" min="0">
+                    </div>
+                    <div class="input-group">
+                        <label>Cruz de Oro Constancia (0,5 pts):</label>
+                        <input type="number" id="cruz_oro_constancia" value="0" min="0">
+                    </div>
+                    <div class="input-group">
+                        <label>Encomienda San Hermenegildo (0,5 pts):</label>
+                        <input type="number" id="encomienda_herm" value="0" min="0">
+                    </div>
+                    <div class="input-group">
+                        <label>Placa San Hermenegildo (0,5 pts):</label>
+                        <input type="number" id="placa_herm" value="0" min="0">
+                    </div>
+                </div>
             </div>
             <div class="input-group">
                 <label>Menciones Honoríficas (1 pt):</label>
@@ -356,14 +407,22 @@
 <div class="step" id="step5">
     <h2>5. Méritos Académicos</h2>
 
-    <!-- ── OFICIALES ── -->
-    <div id="vma_oficial">
+    <!-- ── OFICIALES — Promoción Interna (Anexo III) ── -->
+    <div id="vma_of_promo">
         <div class="info-box">
-            <b>Oficiales (Apéndice 8):</b> Nota expediente (5–10) × 2 → entre 10 y 20 pts. Máster: 2 pts. Doctor: 2 pts. <b>VMA máx.: 32 pts.</b>
+            <b>Oficiales — Promo Interna (Anexo III):</b> Nota (5–10) × 2 → 10–20 pts. Máster: 2 pts. Doctor: 2 pts. VMA máx.: <b>32 pts</b> (con exigencia) / <b>20 pts</b> (sin exigencia con créditos) / <b>12 pts</b> (sin exigencia).
+        </div>
+        <div class="input-group">
+            <label>Tipo de proceso VMA:</label>
+            <select id="of_promo_tipo_vma">
+                <option value="con_exig">Con exigencia de titulación universitaria previa</option>
+                <option value="sin_exig_cred">Sin exigencia con créditos adquiridos</option>
+                <option value="sin_exig">Sin exigencia de titulación universitaria previa</option>
+            </select>
         </div>
         <div class="input-group">
             <label>Nota Media Expediente Universitario (5–10):</label>
-            <small>Introduce 0 si no tienes titulación.</small>
+            <small>Si es proceso con exigencia: se multiplica × 2 (10–20 pts). Si no tienes titulación deja en 0.</small>
             <input type="number" id="nota_tit_of" step="0.01" value="0" min="0" max="10">
         </div>
         <div class="grid-2">
@@ -378,10 +437,109 @@
         </div>
     </div>
 
-    <!-- ── CUERPOS COMUNES ── -->
+    <!-- ── OFICIALES — Ingreso Directo con titulación (Anexo II) ── -->
+    <div id="vma_of_con_tit" style="display:none;">
+        <div class="info-box">
+            <b>Oficiales — Ingreso Directo con titulación (Anexo II):</b> Nota expediente (5–10). Máster: 2 pts. Doctor: 2 pts. Idiomas FAS excepto inglés (Francés primario, máx. 8 pts). <b>Total máx.: 25 pts (VMM + VMA).</b>
+        </div>
+        <div class="input-group">
+            <label>Nota Media Expediente Universitario (5–10):</label>
+            <input type="number" id="nota_tit_of2" step="0.01" value="0" min="0" max="10">
+        </div>
+        <div class="grid-2">
+            <div class="input-group">
+                <label>Título de Máster:</label><small>2 pts</small>
+                <select id="master_of2"><option value="0">No</option><option value="1">Sí</option></select>
+            </div>
+            <div class="input-group">
+                <label>Título de Doctor:</label><small>2 pts</small>
+                <select id="doctor_of2"><option value="0">No</option><option value="1">Sí</option></select>
+            </div>
+        </div>
+        <div class="input-group">
+            <label>Idioma FAS (excepto inglés — principalmente Francés):</label>
+            <small>C1/Filología/SLP 3,3,3,3+: 5 pts · B2/SLP 2,2,2,2+: 3 pts. Si no es francés, −2 pts de cada nivel. Máx. 8 pts.</small>
+            <select id="idioma_of2">
+                <option value="0">Ninguno / No aplica</option>
+                <option value="b2_frances">Francés B2 / SLP 2,2,2,2+ (3 pts)</option>
+                <option value="c1_frances">Francés C1 / Filología / SLP 3,3,3,3+ (5 pts)</option>
+                <option value="b2_otro">Otro idioma FAS — B2 (1 pt, −2 por no ser francés)</option>
+                <option value="c1_otro">Otro idioma FAS — C1 (3 pts, −2 por no ser francés)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- ── OFICIALES — Ingreso Directo sin titulación (Anexo I) ── -->
+    <div id="vma_of_sin_tit" style="display:none;">
+        <div class="info-box">
+            <b>Oficiales — Ingreso Directo sin titulación (Anexo I):</b> Fórmula basada en nota EvAU o CACRED. PFC = 0,6×NMB + 0,4×EvAU + a×T1 + b×T2 + VMM.
+        </div>
+        <div class="input-group">
+            <label>Procedencia:</label>
+            <select id="of_sin_tit_via" onchange="toggleOfVia()">
+                <option value="evau">EvAU (Evaluación de Bachillerato para acceso a la Universidad)</option>
+                <option value="cacred">CACRED (otros sistemas educativos)</option>
+            </select>
+        </div>
+        <div id="of_evau_block">
+            <div class="grid-2">
+                <div class="input-group">
+                    <label>NMB — Nota Media del Bachillerato (0–10):</label>
+                    <input type="number" id="of_nmb" step="0.01" value="0" min="0" max="10">
+                </div>
+                <div class="input-group">
+                    <label>EvAU — Nota fase general (0–10):</label>
+                    <input type="number" id="of_evau" step="0.01" value="0" min="0" max="10">
+                </div>
+                <div class="input-group">
+                    <label>T1 — Materia específica 1 (0–10):</label>
+                    <small>Física/Matemáticas II: a=0,2. Resto: a=0,1</small>
+                    <input type="number" id="of_t1" step="0.01" value="0" min="0" max="10">
+                </div>
+                <div class="input-group">
+                    <label>T2 — Materia específica 2 (0–10):</label>
+                    <input type="number" id="of_t2" step="0.01" value="0" min="0" max="10">
+                </div>
+                <div class="input-group">
+                    <label>Parámetro a (T1):</label>
+                    <select id="of_a_param"><option value="0.2">0,2 (Física / Matemáticas II)</option><option value="0.1">0,1 (Resto de materias)</option></select>
+                </div>
+                <div class="input-group">
+                    <label>Parámetro b (T2):</label>
+                    <select id="of_b_param"><option value="0.2">0,2 (Física / Matemáticas II)</option><option value="0.1">0,1 (Resto de materias)</option></select>
+                </div>
+            </div>
+        </div>
+        <div id="of_cacred_block" style="display:none;">
+            <div class="grid-2">
+                <div class="input-group">
+                    <label>CACRED — Calificación de Acreditación (0–14):</label>
+                    <input type="number" id="of_cacred" step="0.01" value="0" min="0" max="14">
+                </div>
+                <div class="input-group">
+                    <label>M1 — PCE materia 1 (0–10):</label>
+                    <input type="number" id="of_m1" step="0.01" value="0" min="0" max="10">
+                </div>
+                <div class="input-group">
+                    <label>M2 — PCE materia 2 (0–10):</label>
+                    <input type="number" id="of_m2" step="0.01" value="0" min="0" max="10">
+                </div>
+                <div class="input-group">
+                    <label>Parámetro a (M1):</label>
+                    <select id="of_a_param2"><option value="0.2">0,2 (Física / Matemáticas II)</option><option value="0.1">0,1 (Resto)</option></select>
+                </div>
+                <div class="input-group">
+                    <label>Parámetro b (M2):</label>
+                    <select id="of_b_param2"><option value="0.2">0,2 (Física / Matemáticas II)</option><option value="0.1">0,1 (Resto)</option></select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── CUERPOS COMUNES — Cambio de cuerpo ── -->
     <div id="vma_cc" style="display:none;">
         <div class="info-box">
-            <b>Cuerpos Comunes (BOE 2011, Anexo II):</b> Nota expediente (5–10) × 2. Máster: 5 pts. Doctor: 7 pts. <b>VMA máx.: 37 pts.</b>
+            <b>CC — Cambio de Cuerpo/Escala (BOE 2011, Anexo II):</b> Nota expediente (5–10) × 2. Máster: 5 pts. Doctor: 7 pts. <b>VMA máx.: 37 pts.</b>
         </div>
         <div class="input-group">
             <label>Nota Media Expediente Universitario (5–10):</label>
@@ -395,6 +553,28 @@
             <div class="input-group">
                 <label>Título de Doctor:</label><small>7 pts</small>
                 <select id="doctor_cc"><option value="0">No</option><option value="1">Sí</option></select>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── CUERPOS COMUNES — Ingreso Directo ── -->
+    <div id="vma_cc_dir" style="display:none;">
+        <div class="info-box">
+            <b>CC — Ingreso Directo (BOE 2011, Anexo I):</b> Nota expediente (5–10) × 1,5 = entre 7,5 y 15 pts. Máster: 3 pts. Doctor: 5 pts. Inglés: avanzado/C1 = 3 pts, intermedio = 1 pt. <b>VMA máx.: ~26 pts. Total máx.: 29 pts.</b>
+        </div>
+        <div class="input-group">
+            <label>Nota Media Expediente Universitario (5–10):</label>
+            <small>Se multiplicará × 1,5. Rango: 7,5–15 pts.</small>
+            <input type="number" id="nota_tit_cc_dir" step="0.01" value="0" min="0" max="10">
+        </div>
+        <div class="grid-2">
+            <div class="input-group">
+                <label>Título de Máster Oficial:</label><small>3 pts</small>
+                <select id="master_cc_dir"><option value="0">No</option><option value="1">Sí</option></select>
+            </div>
+            <div class="input-group">
+                <label>Título de Doctor:</label><small>5 pts</small>
+                <select id="doctor_cc_dir"><option value="0">No</option><option value="1">Sí</option></select>
             </div>
         </div>
     </div>
@@ -597,10 +777,15 @@
     <hr style="border:1px solid var(--border);margin:25px 0">
     <h3 style="margin-bottom:10px">Únete al Escalafón Global</h3>
     <p style="font-size:.85rem;color:var(--muted);margin-bottom:15px">Guarda tu nota de forma anónima para ver en qué posición quedas. Tu DNI no se mostrará públicamente.</p>
-    <div class="grid-2">
-        <div class="input-group"><label>ID Privado (DNI):</label><input type="text" id="u_id" placeholder="12345678A"></div>
-        <div class="input-group"><label>Cuerpo / Especialidad:</label><input type="text" id="u_spec" placeholder="ET - Transmisiones"></div>
+    <div class="input-group"><label>ID Privado (DNI):</label><input type="text" id="u_id" placeholder="12345678A"></div>
+
+    <div class="input-group">
+        <label>Especialidades a las que optas (por orden de preferencia):</label>
+        <small>Añade hasta 5 especialidades. La 1.ª es tu primera preferencia.</small>
+        <div id="spec-list" style="margin-top:6px"></div>
+        <button type="button" onclick="addEspecialidad()" class="btn btn-outline" style="margin-top:8px;padding:8px 14px;font-size:.85rem">+ Añadir especialidad</button>
     </div>
+
     <button class="btn btn-primary" style="width:100%" id="btn-save" onclick="guardarEnNube()">Publicar Nota y Ver Listado</button>
     <button class="btn btn-outline" style="width:100%;margin-top:10px" onclick="nextStep(6)">Volver a la Calculadora</button>
 </div>
@@ -643,7 +828,7 @@
 <script>
 // ══ API (Cloudflare Worker — sin claves expuestas) ════════
 // Sustituye esta URL por la de tu Worker tras desplegarlo:
-const API = "https://baremo-proxy.gascongs.workers.dev";
+const API = "https://TU_WORKER.TU_USUARIO.workers.dev";
 let notaGlobal = 0;
 let currentUserHash = null;  // hash del usuario logueado, para resaltarlo
 
@@ -651,6 +836,8 @@ let currentUserHash = null;  // hash del usuario logueado, para resaltarlo
 const $ = id => document.getElementById(id);
 const getEscala = () => $("escala").value;
 const getProceso = () => $("proceso_sub").value;
+const getProcesoCc = () => $("proceso_cc") ? $("proceso_cc").value : "cambio_cuerpo";
+const getProcesoOf = () => $("proceso_of") ? $("proceso_of").value : "promo_interna";
 const show = id => $(id).style.display = "block";
 const hide = id => $(id).style.display = "none";
 const val = id => parseFloat($(id).value) || 0;
@@ -672,11 +859,9 @@ function nextStep(s) {
 // ══ Paso 1: cambio de escala/proceso ══════════════════════
 function onEscalaChange() {
     const esc = getEscala();
-    if (esc === "suboficial") {
-        show("bloque_proceso_sub");
-    } else {
-        hide("bloque_proceso_sub");
-    }
+    if (esc === "oficial")       { show("bloque_proceso_of"); } else { hide("bloque_proceso_of"); }
+    if (esc === "suboficial")    { show("bloque_proceso_sub"); } else { hide("bloque_proceso_sub"); }
+    if (esc === "cuerpos_comunes") { show("bloque_proceso_cc"); } else { hide("bloque_proceso_cc"); }
     actualizarResumenProceso();
     actualizarTodosLosPasos();
 }
@@ -684,37 +869,55 @@ function onEscalaChange() {
 function actualizarResumenProceso() {
     const esc = getEscala();
     const proc = getProceso();
+    const procCC = getProcesoCc();
     const resumenes = {
-        oficial: "Oficiales (Apéndice 8 — BOD 2026): VMM máx. 43 pts · VMA máx. 32 pts · PFC = VMM/2 + VMA",
-        cuerpos_comunes: "Cuerpos Comunes (BOE 2011 Anexo II): VMM máx. 48 pts · VMA máx. 37 pts · PFC = VMM + VMA",
-        sub_promo_interna: "Suboficiales Promoción Interna (BOE 2024 Anexo III): VMM máx. 57 pts · VMA máx. 35/21 pts · PFC = VMM + VMA",
-        sub_directo_sin_ts: "Suboficiales Ingreso Directo sin TS (BOE 2024 Anexo I): VMM máx. 0,5 pts · VMA máx. 13 pts · Total máx. 13,5 pts",
-        sub_directo_con_ts: "Suboficiales Ingreso Directo con TS (BOE 2024 Anexo II): VMM máx. 2,5 pts · VMA máx. 12,5 pts · Total máx. 15 pts"
+        of_promo_interna:   "Oficiales — Promo Interna (Anexo III — BOE 2024): VMM máx. 43 pts · VMA máx. 32 pts · PFC = VMM/2 + VMA",
+        of_directo_con_tit: "Oficiales — Ingreso Directo con titulación (Anexo II): VMM máx. 3 pts · VMA máx. 22 pts · Total máx. 25 pts · PFC = VMM + VMA",
+        of_directo_sin_tit: "Oficiales — Ingreso Directo sin titulación (Anexo I): Fórmula EvAU/CACRED + VMM (máx. 0,5 pts)",
+        cc_cambio_cuerpo: "CC — Cambio de Cuerpo/Escala (BOE 2011 Anexo II): VMM máx. 48 pts · VMA máx. 37 pts · Total máx. 85 pts · PFC = VMM + VMA",
+        cc_ingreso_directo: "CC — Ingreso Directo (BOE 2011 Anexo I): VMM máx. 3 pts · VMA máx. ~26 pts · Total máx. 29 pts · PFC = VMM + VMA",
+        sub_promo_interna: "Suboficiales — Promoción Interna (BOE 2024 Anexo III): VMM máx. 57 pts · VMA máx. 35/21 pts · PFC = VMM + VMA",
+        sub_directo_sin_ts: "Suboficiales — Ingreso Directo sin TS (BOE 2024 Anexo I): VMM máx. 0,5 pts · Total máx. 13,5 pts",
+        sub_directo_con_ts: "Suboficiales — Ingreso Directo con TS (BOE 2024 Anexo II): VMM máx. 2,5 pts · Total máx. 15 pts"
     };
-    let key = esc === "suboficial" ? "sub_" + proc : esc;
+    let key = esc === "suboficial" ? "sub_" + proc : esc === "cuerpos_comunes" ? "cc_" + procCC : esc === "oficial" ? "of_" + getProcesoOf() : esc;
     $("resumen_proceso").textContent = resumenes[key] || "";
 }
 
 function actualizarTodosLosPasos() {
     const esc = getEscala();
     const proc = getProceso();
+    const procCC = getProcesoCc();
     const isOf = esc === "oficial";
     const isSub = esc === "suboficial";
     const isCC = esc === "cuerpos_comunes";
     const isPromo = isSub && proc === "promo_interna";
     const isDirSin = isSub && proc === "directo_sin_ts";
     const isDirCon = isSub && proc === "directo_con_ts";
-    const isDirecto = isDirSin || isDirCon;
+    const isDirectoSub = isDirSin || isDirCon;
+    const isCCCambio = isCC && procCC === "cambio_cuerpo";
+    const isCCDir    = isCC && procCC === "ingreso_directo";
+    const isDirecto  = isDirectoSub || isCCDir;
+
+    // Variables Oficiales
+    const procesoOf = isOf ? getProcesoOf() : "";
+    const isOfPromo    = isOf && procesoOf === "promo_interna";
+    const isOfConTit   = isOf && procesoOf === "directo_con_tit";
+    const isOfSinTit   = isOf && procesoOf === "directo_sin_tit";
+    const isOfDirecto  = isOfConTit || isOfSinTit;
 
     // ── Paso 2: info boxes tiempo ──
-    $("info_t_oficial").style.display    = isOf ? "block" : "none";
+    $("info_t_of_promo").style.display   = isOfPromo   ? "block" : "none";
+    $("info_t_of_con_tit").style.display = isOfConTit  ? "block" : "none";
+    $("info_t_of_sin_tit").style.display = isOfSinTit  ? "block" : "none";
     $("info_t_sub_promo").style.display  = isPromo ? "block" : "none";
     $("info_t_sub_sin_ts").style.display = isDirSin ? "block" : "none";
     $("info_t_sub_con_ts").style.display = isDirCon ? "block" : "none";
-    $("info_t_cc").style.display         = isCC ? "block" : "none";
+    $("info_t_cc_cambio").style.display  = isCCCambio ? "block" : "none";
+    $("info_t_cc_dir").style.display     = isCCDir ? "block" : "none";
 
     // Misiones: no aplica para ingreso directo
-    $("bloque_misiones").style.display = isDirecto ? "none" : "block";
+    $("bloque_misiones").style.display = (isDirecto || isOfDirecto) ? "none" : "block";
 
     // ── Paso 3: recompensas ──
     // Cruz rojo/azul: Oficiales 6.5/5, SubPromo 6.5/5, CC 7/5.5
@@ -722,29 +925,32 @@ function actualizarTodosLosPasos() {
     $("pts_azul").textContent = isCC ? "5,5" : "5";
     $("max_rec_fas").textContent = isCC ? "16" : "15";
     // Hermenegildo: no en CC
-    $("sec_hermenegildo").style.display = isCC ? "none" : "block";
+    $("sec_hermenegildo").style.display = (isCC) ? "none" : "block";
     if (isCC) $("hermenegildo").value = "0";
     $("label_hermenegildo").textContent = isOf
         ? "Cruz Real y Militar Orden San Hermenegildo (2 pts):"
         : "Cruz Constancia / San Hermenegildo — cualquier modalidad (2 pts):";
     // Cruz Bronce Constancia: solo Oficiales
-    $("sec_constancia").style.display = isOf ? "block" : "none";
-    if (!isOf) $("cruz_constancia").value = "0";
+    $("sec_constancia_of").style.display = isOfPromo ? "block" : "none";
+    if (!isOfPromo) { $("cruz_constancia").value = "0"; $("cruz_plata_constancia") && ($("cruz_plata_constancia").value = "0"); }
     // Empleo + Especialidad: solo Sub Promo Interna
     $("bloque_empleo_esp").style.display = isPromo ? "block" : "none";
     if (!isPromo) { $("empleo_sub").value = "0"; $("esp_fundamental").value = "0"; }
 
     // ── Paso 4: IPEC ──
-    $("ipec_oficial").style.display  = isOf ? "block" : "none";
-    $("ipec_sub_cc").style.display   = (isPromo || isCC) ? "block" : "none";
-    // Ajustar texto IPEC si CC muestra notas numéricas globales
-    if (isCC) {
+    $("ipec_oficial").style.display  = isOfPromo ? "block" : "none";
+    $("ipec_sub_cc").style.display   = (isPromo || isCCCambio) ? "block" : "none";
+    // Ajustar texto IPEC si CC cambio de cuerpo
+    if (isCCCambio) {
         $("info_ipec_sub").innerHTML = 'Media aritmética de los dos últimos informes (nota global, escala 4–9,5) × 1,5 = IPEC. <b>Máx. 15 pts.</b><br><b>Penalización:</b> ≥5 valoraciones E en algún informe → −10 pts sobre total VMM.';
     }
 
     // ── Paso 5: VMA ──
-    $("vma_oficial").style.display      = isOf ? "block" : "none";
-    $("vma_cc").style.display           = isCC ? "block" : "none";
+    $("vma_of_promo").style.display     = isOfPromo   ? "block" : "none";
+    $("vma_of_con_tit").style.display   = isOfConTit  ? "block" : "none";
+    $("vma_of_sin_tit").style.display   = isOfSinTit  ? "block" : "none";
+    $("vma_cc").style.display           = isCCCambio ? "block" : "none";
+    $("vma_cc_dir").style.display       = isCCDir ? "block" : "none";
     $("vma_sub_sin_ts").style.display   = isDirSin ? "block" : "none";
     $("vma_sub_con_ts").style.display   = isDirCon ? "block" : "none";
     $("vma_sub_promo").style.display    = isPromo ? "block" : "none";
@@ -766,13 +972,26 @@ function actualizarIdiomasStep6() {
     const hint = $("hint_ingles");
 
     if (isOf) {
-        sel.innerHTML = '<option value="ninguno">Ninguno / Inferior a C1</option><option value="c1">C1 / Filología / SLP 3,3,3,3+ (3 pts)</option>';
-        hint.textContent = "Oficiales: C1/Filología/SLP 3,3,3,3+ = 3 pts. El B2 no computa.";
-        $("bloque_seg_idioma").style.display = "block";
-        $("label_seg_idioma").textContent = "Segundo idioma de interés FAS (solo Oficiales):";
-        $("hint_seg_idioma").textContent = "C1/Filología/SLP 3,3,3,3+: 2 pts · B2/SLP 2,2,2,2+: 1 pt. Máx. total idiomas: 8 pts.";
-        const s2 = $("idioma_segundo");
-        s2.innerHTML = '<option value="ninguno">Ninguno</option><option value="b2">B2 / SLP 2,2,2,2+ (1 pt)</option><option value="c1">C1 / Filología / SLP 3,3,3,3+ (2 pts)</option>';
+        const pOf = getProcesoOf();
+        if (pOf === "directo_con_tit") {
+            // Anexo II: el idioma (FAS excepto inglés) ya está en el paso 5
+            sel.innerHTML = '<option value="ninguno">No aplica aquí (idiomas en paso 5)</option>';
+            hint.textContent = "Para Ingreso Directo con titulación, los idiomas FAS se valoran en el Paso 5.";
+            $("bloque_seg_idioma").style.display = "none";
+        } else if (pOf === "directo_sin_tit") {
+            sel.innerHTML = '<option value="ninguno">No aplica (fórmula EvAU/CACRED — no hay méritos de idiomas)</option>';
+            hint.textContent = "El Anexo I no incluye méritos por idiomas; la puntuación se calcula con la fórmula EvAU/CACRED.";
+            $("bloque_seg_idioma").style.display = "none";
+        } else {
+            // Promo interna: inglés C1 = 3 pts, SLP, 2.º idioma
+            sel.innerHTML = '<option value="ninguno">Ninguno / Inferior a C1</option><option value="c1">C1 / Filología / SLP 3,3,3,3+ (3 pts)</option>';
+            hint.textContent = "Oficiales Promo Interna: C1/Filología/SLP 3,3,3,3+ = 3 pts. El B2 no computa.";
+            $("bloque_seg_idioma").style.display = "block";
+            $("label_seg_idioma").textContent = "Segundo idioma de interés FAS:";
+            $("hint_seg_idioma").textContent = "C1/Filología/SLP 3,3,3,3+: 2 pts · B2/SLP 2,2,2,2+: 1 pt. Máx. total idiomas: 8 pts.";
+            const s2 = $("idioma_segundo");
+            s2.innerHTML = '<option value="ninguno">Ninguno</option><option value="b2">B2 / SLP 2,2,2,2+ (1 pt)</option><option value="c1">C1 / Filología / SLP 3,3,3,3+ (2 pts)</option>';
+        }
     } else if (isPromo) {
         sel.innerHTML = '<option value="ninguno">Ninguno / Inferior a B2</option><option value="b2">B2 / SLP ≥2 rasgos &gt;2 (3 pts)</option><option value="c1">C1 / Filología / SLP 3,3,3,3+ (5 pts)</option>';
         hint.textContent = "Suboficiales Promo Interna (Anexo III): C1 = 5 pts · B2 = 3 pts. Máx. suma inglés + 2.º idioma: 8 pts.";
@@ -786,32 +1005,48 @@ function actualizarIdiomasStep6() {
         sel.innerHTML = '<option value="ninguno">No aplica en este proceso</option>';
         hint.textContent = "Los Anexos I y II de Ingreso Directo no incluyen méritos por idiomas.";
         $("bloque_seg_idioma").style.display = "none";
-    } else {
-        // CC
-        sel.innerHTML = '<option value="ninguno">Ninguno / Inferior a intermedio</option><option value="b2">Nivel intermedio / SLP ≥2 rasgos &gt;2 (3 pts)</option><option value="c1">C1 / Nivel avanzado / SLP 3,3,3,3+ (5 pts)</option>';
-        hint.textContent = "Cuerpos Comunes: avanzado/C1/SLP 3,3,3,3+ = 5 pts · intermedio = 3 pts. Máx. 5 pts.";
+    } else if (isCC) {
+        const procCC2 = getProcesoCc();
+        if (procCC2 === "ingreso_directo") {
+            // CC Ingreso Directo (Anexo I): avanzado 3 pts, intermedio 1 pt. Máx 3 pts.
+            sel.innerHTML = '<option value="ninguno">Ninguno / Inferior a intermedio</option><option value="b2">Nivel intermedio (1 pt)</option><option value="c1">Nivel avanzado / C1 (3 pts)</option>';
+            hint.textContent = "CC Ingreso Directo (Anexo I): avanzado = 3 pts · intermedio = 1 pt. Máx. 3 pts.";
+        } else {
+            // CC Cambio de cuerpo (Anexo II): avanzado/C1/SLP 3,3,3,3+ = 5 pts, intermedio = 3 pts
+            sel.innerHTML = '<option value="ninguno">Ninguno / Inferior a intermedio</option><option value="b2">Nivel intermedio / SLP ≥2 rasgos &gt;2 (3 pts)</option><option value="c1">C1 / Nivel avanzado / SLP 3,3,3,3+ (5 pts)</option>';
+            hint.textContent = "CC Cambio Cuerpo (Anexo II): avanzado/C1/SLP 3,3,3,3+ = 5 pts · intermedio = 3 pts. Máx. 5 pts.";
+        }
         $("bloque_seg_idioma").style.display = "none";
     }
 }
 
 // Navegación inteligente: los procesos de ingreso directo saltan recompensas e IPEC
 function navDesdeStep2() {
-    const esc = getEscala(); const proc = getProceso();
-    const isDirecto = esc === "suboficial" && (proc === "directo_sin_ts" || proc === "directo_con_ts");
+    const esc = getEscala(); const proc = getProceso(); const procCC = getProcesoCc();
+    const isDirecto = (esc === "suboficial" && (proc === "directo_sin_ts" || proc === "directo_con_ts"))
+                    || (esc === "cuerpos_comunes" && procCC === "ingreso_directo");
     nextStep(isDirecto ? 5 : 3);
 }
 function navAtrasStep5() {
-    const esc = getEscala(); const proc = getProceso();
-    const isDirecto = esc === "suboficial" && (proc === "directo_sin_ts" || proc === "directo_con_ts");
+    const esc = getEscala(); const proc = getProceso(); const procCC = getProcesoCc();
+    const isDirecto = (esc === "suboficial" && (proc === "directo_sin_ts" || proc === "directo_con_ts"))
+                    || (esc === "cuerpos_comunes" && procCC === "ingreso_directo");
     nextStep(isDirecto ? 2 : 4);
 }
 function navDesdeStep5() {
-    const esc = getEscala(); const proc = getProceso();
-    const isDirecto = esc === "suboficial" && (proc === "directo_sin_ts" || proc === "directo_con_ts");
+    const esc = getEscala(); const proc = getProceso(); const procCC = getProcesoCc();
+    const isDirecto = (esc === "suboficial" && (proc === "directo_sin_ts" || proc === "directo_con_ts"))
+                    || (esc === "cuerpos_comunes" && procCC === "ingreso_directo");
     if (isDirecto) { calcularBaremo(); } else { nextStep(6); }
 }
 function navAtrasStep6() {
     nextStep(5);
+}
+
+function toggleOfVia() {
+    const v = $("of_sin_tit_via") ? $("of_sin_tit_via").value : "evau";
+    if ($("of_evau_block")) $("of_evau_block").style.display = v === "evau" ? "block" : "none";
+    if ($("of_cacred_block")) $("of_cacred_block").style.display = v === "cacred" ? "block" : "none";
 }
 
 // Toggle sub-process promo interna con/sin TS
@@ -828,10 +1063,17 @@ function calcularBaremo() {
     const isOf = esc === "oficial";
     const isSub = esc === "suboficial";
     const isCC = esc === "cuerpos_comunes";
+    const procCC = getProcesoCc();
+    const procesoOf2 = isOf ? getProcesoOf() : "";
+    const isOfPromo2   = isOf && procesoOf2 === "promo_interna";
+    const isOfConTit2  = isOf && procesoOf2 === "directo_con_tit";
+    const isOfSinTit2  = isOf && procesoOf2 === "directo_sin_tit";
     const isPromo    = isSub && proc === "promo_interna";
     const isDirSin   = isSub && proc === "directo_sin_ts";
     const isDirCon   = isSub && proc === "directo_con_ts";
-    const isDirecto  = isDirSin || isDirCon;
+    const isCCDir    = isCC && procCC === "ingreso_directo";
+    const isCCCambio = isCC && procCC === "cambio_cuerpo";
+    const isDirecto  = isDirSin || isDirCon || isCCDir || isOfConTit2 || isOfSinTit2;
 
     let vmm = 0, vma = 0;
     let desgVMM = "", desgVMA = "";
@@ -953,80 +1195,153 @@ function calcularBaremo() {
     }
 
     // ══════════════════════════════════════════════════════
-    // OFICIALES (Apéndice 8 — BOD 2026)
+    // OFICIALES — INGRESO DIRECTO SIN TITULACIÓN (Anexo I)
+    // ══════════════════════════════════════════════════════
+    else if (isOfSinTit2) {
+        const via = $("of_sin_tit_via") ? $("of_sin_tit_via").value : "evau";
+        const vmm_mil = Math.min(val("meses_mil") * 0.025, 0.5);
+        const vmm_res = Math.min(val("meses_res") * 0.01, 0.5);
+        const vmmOf = Math.min(vmm_mil + vmm_res, 0.5);
+        let pfc;
+        if (via === "evau") {
+            const nmb = val("of_nmb"); const evau = val("of_evau");
+            const t1 = val("of_t1"); const t2 = val("of_t2");
+            const a = parseFloat($("of_a_param").value) || 0.1;
+            const b = parseFloat($("of_b_param").value) || 0.1;
+            pfc = 0.6*nmb + 0.4*evau + a*t1 + b*t2 + vmmOf;
+            desgVMM = `VMM ${vmmOf.toFixed(3)} (0,025/mes mil, 0,01/mes res, máx 0,5)`;
+            desgVMA = `0,6×NMB(${nmb}) + 0,4×EvAU(${evau}) + ${a}×T1(${t1}) + ${b}×T2(${t2})`;
+        } else {
+            const cacred = val("of_cacred");
+            const m1 = val("of_m1"); const m2 = val("of_m2");
+            const a2 = parseFloat($("of_a_param2").value) || 0.1;
+            const b2 = parseFloat($("of_b_param2").value) || 0.1;
+            pfc = cacred + a2*m1 + b2*m2 + vmmOf;
+            desgVMM = `VMM ${vmmOf.toFixed(3)}`;
+            desgVMA = `CACRED(${cacred}) + ${a2}×M1(${m1}) + ${b2}×M2(${m2})`;
+        }
+        notaGlobal = pfc;
+        vmm = vmmOf; vma = pfc - vmmOf;
+    }
+
+    // ══════════════════════════════════════════════════════
+    // OFICIALES — INGRESO DIRECTO CON TITULACIÓN (Anexo II)
+    // ══════════════════════════════════════════════════════
+    else if (isOfConTit2) {
+        const pts_mil2 = Math.min(val("meses_mil") * 0.1, 3);
+        const pts_res2 = Math.min(val("meses_res") * 0.02, 1.2);
+        vmm = Math.min(pts_mil2 + pts_res2, 3);
+        desgVMM = `Tiempo ${vmm.toFixed(2)} (0,1/mes mil, máx 3 pts)`;
+
+        const notaTit2 = val("nota_tit_of2");
+        let ptsTit2 = notaTit2 >= 5 ? Math.min(notaTit2, 10) : 0;
+        if (parseFloat($("master_of2").value) === 1) ptsTit2 += 2;
+        if (parseFloat($("doctor_of2").value) === 1) ptsTit2 += 2;
+        const idiomaOf2 = $("idioma_of2") ? $("idioma_of2").value : "0";
+        const ptsIdiomaOf2 = { "b2_frances":3, "c1_frances":5, "b2_otro":1, "c1_otro":3 }[idiomaOf2] || 0;
+        vma = Math.min(ptsTit2 + ptsIdiomaOf2, 22);
+        notaGlobal = vmm + vma; // PFC = VMM + VMA (no divide)
+        desgVMA = `Título ${ptsTit2.toFixed(2)} + Idiomas FAS ${ptsIdiomaOf2}`;
+    }
+
+    // ══════════════════════════════════════════════════════
+    // OFICIALES — PROMOCIÓN INTERNA (Anexo III)
     // ══════════════════════════════════════════════════════
     else if (isOf) {
-        // a) Tiempo
+        // a) Tiempo desde 2.º año
         const pts_mil  = Math.min(val("meses_mil") * 0.05, 4);
         const pts_res  = Math.min(val("meses_res") * 0.02, 1.2);
         const pts_tiempo = Math.min(pts_mil + pts_res, 4);
-        // b) Misiones
         const pts_mis = Math.min(val("meses_mis") * 0.5, 5);
         // c) Recompensas FAS — máx. 15
         let recFAS = val("cruz_rojo")*6.5 + val("cruz_azul")*5 + val("cruz_blanca")*4
-                   + val("distinguido")*3  + val("hermenegildo")*2 + val("cruz_constancia")*1.5
+                   + val("distinguido")*3  + val("hermenegildo")*2
+                   + val("cruz_constancia")*1.5
+                   + (val("cruz_plata_constancia")||0)*1
+                   + (val("cruz_oro_constancia")||0)*0.5
+                   + (val("encomienda_herm")||0)*0.5
+                   + (val("placa_herm")||0)*0.5
                    + val("mencion")*1 + val("felicitacion")*0.5 + val("ext_armado")*5 + val("ext_otras")*1;
         recFAS = Math.min(recFAS, 15);
-        // d) Recompensas GC — máx. 4
         let recGC = Math.min(val("gc_rojo")*4 + val("gc_plata")*3 + val("gc_blanca")*2, 4);
-        // e) IPEC × 1,5 — máx. 15
         const ipecPts  = Math.min(val("ipec_nota_of") * 1.5, 15);
         const ipecPenal = parseFloat($("ipec_penal_of").value) === 1;
-
         vmm = pts_tiempo + pts_mis + recFAS + recGC + ipecPts;
         vmm = Math.min(vmm, 43);
         if (ipecPenal) vmm -= 10;
         vmm = Math.max(vmm, 0);
         desgVMM = `Tiempo ${pts_tiempo.toFixed(2)} + Mis ${pts_mis.toFixed(2)} + RecFAS ${recFAS.toFixed(2)} + RecGC ${recGC.toFixed(2)} + IPEC ${ipecPts.toFixed(2)}${ipecPenal ? " [−10 penal]" : ""}`;
 
-        // VMA
+        // VMA según sub-proceso
+        const tipoVma = $("of_promo_tipo_vma") ? $("of_promo_tipo_vma").value : "con_exig";
         const notaTit = val("nota_tit_of");
-        let ptsTit = notaTit >= 5 ? notaTit * 2 : 0;
+        let ptsTit = 0;
+        if (tipoVma === "con_exig") {
+            ptsTit = notaTit >= 5 ? notaTit * 2 : 0;
+        } else if (tipoVma === "sin_exig_cred") {
+            // Créditos ECTS: el usuario introduce la puntuación calculada directamente (1,8-12)
+            ptsTit = Math.min(Math.max(notaTit, 0), 12);
+        } else {
+            // Sin exigencia: título vale 2 pts planos
+            ptsTit = notaTit >= 5 ? 2 : 0;
+        }
         if (parseFloat($("master_of").value) === 1) ptsTit += 2;
         if (parseFloat($("doctor_of").value) === 1) ptsTit += 2;
-        // Idiomas
         const ingVal = $("idioma_ingles").value;
         let ptsIng = ingVal === "c1" ? 3 : 0;
         const seg2 = $("idioma_segundo").value;
         let ptsSeg = seg2 === "c1" ? 2 : seg2 === "b2" ? 1 : 0;
         const ptsIdiomasTotal = Math.min(ptsIng + ptsSeg, 8);
-
-        vma = Math.min(ptsTit + ptsIdiomasTotal, 32);
-        desgVMA = `Título ${ptsTit.toFixed(2)} + Idiomas ${ptsIdiomasTotal.toFixed(2)}`;
+        const vmaMax = tipoVma === "con_exig" ? 32 : tipoVma === "sin_exig_cred" ? 20 : 12;
+        vma = Math.min(ptsTit + ptsIdiomasTotal, vmaMax);
+        desgVMA = `Título ${ptsTit.toFixed(2)} + Idiomas ${ptsIdiomasTotal.toFixed(2)} [VMA máx ${vmaMax}]`;
     }
 
     // ══════════════════════════════════════════════════════
-    // CUERPOS COMUNES (BOE 2011 Anexo II)
+    // CC — INGRESO DIRECTO (BOE 2011 Anexo I)
     // ══════════════════════════════════════════════════════
-    else if (isCC) {
-        // a) Tiempo
+    else if (isCCDir) {
+        // Tiempo: 0,1/mes militar (máx 3), 0,02/mes reservista (máx 1,2). Tope: 3 pts.
+        const pts_mil  = Math.min(val("meses_mil") * 0.1, 3);
+        const pts_res  = Math.min(val("meses_res") * 0.02, 1.2);
+        vmm = Math.min(pts_mil + pts_res, 3);
+        desgVMM = `Tiempo ${vmm.toFixed(2)} pts (máx. 3 pts, 0,1/mes)`;
+
+        // VMA: título × 1,5 + máster 3 + doctor 5 + inglés máx 3
+        const notaTitD = val("nota_tit_cc_dir");
+        let ptsTitD = notaTitD >= 5 ? Math.min(notaTitD * 1.5, 15) : 0;
+        if (parseFloat($("master_cc_dir").value) === 1) ptsTitD += 3;
+        if (parseFloat($("doctor_cc_dir").value) === 1) ptsTitD += 5;
+        const ingValD = $("idioma_ingles").value;
+        const ptsIngD = ingValD === "c1" ? 3 : ingValD === "b2" ? 1 : 0;
+        vma = ptsTitD + ptsIngD;
+        desgVMA = `Título(×1,5) ${ptsTitD.toFixed(2)} + Inglés ${ptsIngD}`;
+    }
+
+    // ══════════════════════════════════════════════════════
+    // CC — CAMBIO DE CUERPO/ESCALA (BOE 2011 Anexo II)
+    // ══════════════════════════════════════════════════════
+    else if (isCCCambio) {
         const pts_mil  = Math.min(val("meses_mil") * 0.05, 3);
         const pts_res  = Math.min(val("meses_res") * 0.02, 1.2);
         const pts_tiempo = Math.min(pts_mil + pts_res, 4);
-        // b) Misiones
         const pts_mis = Math.min(val("meses_mis") * 0.5, 5);
-        // c) Recompensas FAS — máx. 16
         let recFAS = val("cruz_rojo")*7 + val("cruz_azul")*5.5 + val("cruz_blanca")*4
                    + val("distinguido")*3 + val("mencion")*1
                    + val("felicitacion")*0.5 + val("ext_armado")*5 + val("ext_otras")*1;
         recFAS = Math.min(recFAS, 16);
-        // d) Recompensas GC — máx. 4
         let recGC = Math.min(val("gc_rojo")*4 + val("gc_plata")*3 + val("gc_blanca")*2, 4);
-        // e) IPEC × 1,5 — máx. 19 (mismo sistema que sub según BOE 2011)
         const nota1cc = val("ipec_sub_a1");
         const soloUnoCC = $("ipec_sub_solo_uno").value === "1";
         const nota2cc = soloUnoCC ? 0 : val("ipec_sub_a2");
         const mediaCC = (nota2cc > 0 && !soloUnoCC) ? (nota1cc + nota2cc) / 2 : nota1cc;
         const ipecCC  = Math.min(mediaCC * 2, 19);
         const ipecPenalCC = parseFloat($("ipec_penal_sub").value) === 1;
-
         vmm = pts_tiempo + pts_mis + recFAS + recGC + ipecCC;
         vmm = Math.min(vmm, 48);
         if (ipecPenalCC) vmm -= 10;
         vmm = Math.max(vmm, 0);
         desgVMM = `Tiempo ${pts_tiempo.toFixed(2)} + Mis ${pts_mis.toFixed(2)} + RecFAS ${recFAS.toFixed(2)} + RecGC ${recGC.toFixed(2)} + IPEC ${ipecCC.toFixed(2)}${ipecPenalCC ? " [−10 penal]" : ""}`;
-
-        // VMA
         const notaTitCC = val("nota_tit_cc");
         let ptsTitCC = notaTitCC >= 5 ? notaTitCC * 2 : 0;
         if (parseFloat($("master_cc").value) === 1) ptsTitCC += 5;
@@ -1038,9 +1353,10 @@ function calcularBaremo() {
     }
 
     // ══ Fórmula final ══
-    // Oficiales: PFC = VMM/2 + VMA
-    // Todos los demás: PFC = VMM + VMA
-    notaGlobal = isOf ? (vmm / 2) + vma : vmm + vma;
+    // Oficiales promo_interna: VMM/2 + VMA; directo_con_tit y directo_sin_tit ya calcularon notaGlobal
+    if (!isOfConTit2 && !isOfSinTit2) {
+        notaGlobal = isOf ? (vmm / 2) + vma : vmm + vma;
+    }
 
     $("nota-final").textContent = notaGlobal.toFixed(3);
     $("desglose-resumen").textContent = `VMM: ${vmm.toFixed(3)} pts  |  VMA: ${vma.toFixed(3)} pts`;
@@ -1086,18 +1402,21 @@ async function guardarIncidencia(incidencia) {
     if (!res.ok) throw new Error("HTTP " + res.status);
 }
 async function guardarEnNube() {
-    const id   = $("u_id").value.trim();
-    const spec = $("u_spec").value.trim();
-    const esc  = getEscala();
-    const proc = getProceso();
-    if (!id || !spec) return alert("Rellena el ID y la Especialidad.");
+    const id    = $("u_id").value.trim();
+    const specs = getSpecsSeleccionadas();
+    const esc   = getEscala();
+    const proc  = getProceso();
+    const procCC = getProcesoCc();
+    if (!id) return alert("Introduce tu ID privado.");
+    if (specs.length === 0) return alert("Selecciona al menos una especialidad.");
+    const spec = specs[0]; // primera preferencia (para compatibilidad)
     const btn = $("btn-save");
     btn.innerText = "Sincronizando..."; btn.disabled = true;
     try {
         let lista = await leerBin();
         const hash = hashId(id);
         lista = lista.filter(u => u.hash !== hash);
-        lista.push({ hash, spec, escala: esc, proceso: proc, nota: notaGlobal });
+        lista.push({ hash, spec, specs, escala: esc, proceso: proc, nota: notaGlobal });
         await escribirBin(lista);
         currentUserHash = hash;
         alert("Nota guardada en el escalafón global.");
@@ -1285,23 +1604,58 @@ async function vaciarLista() {
     } catch(e) { alert("Error: " + e.message); }
 }
 
+let rankSortMode = "nota"; // "nota" | "spec"
+let rankFilterSpec = "";
+
 function renderTable(data) {
     const tagColor = { oficial:"tag-of", suboficial:"tag-sub", cuerpos_comunes:"tag-cc" };
     const tagLabel = { oficial:"OFICIAL", suboficial:"SUBOFICIAL", cuerpos_comunes:"CC" };
-    data.sort((a,b) => b.nota - a.nota);
-    let html = `<table><thead><tr><th>#</th><th>Especialidad / Proceso</th><th>Puntuación</th></tr></thead><tbody>`;
-    data.forEach((u, i) => {
+
+    // Recopilar todas las especialidades únicas para el filtro
+    const allSpecs = [...new Set(data.flatMap(u => u.specs || [u.spec]).filter(Boolean))].sort();
+
+    // Ordenar
+    let sorted = [...data];
+    if (rankSortMode === "spec" && rankFilterSpec) {
+        // Solo los que tienen esa especialidad, ordenados por nota
+        sorted = sorted.filter(u => (u.specs || [u.spec]).includes(rankFilterSpec));
+        sorted.sort((a,b) => b.nota - a.nota);
+    } else {
+        sorted.sort((a,b) => b.nota - a.nota);
+    }
+
+    // Barra de ordenación
+    let filterOpts = `<option value="">— Todas —</option>`;
+    allSpecs.forEach(s => { filterOpts += `<option value="${s}" ${s===rankFilterSpec?"selected":""}>${s}</option>`; });
+
+    let html = `<div class="sort-bar">
+        <span style="font-size:.82rem;font-weight:600;color:var(--muted)">Ordenar/Filtrar:</span>
+        <button class="sort-btn ${rankSortMode==='nota'&&!rankFilterSpec?'active':''}" onclick="setSortMode('nota','')">🏆 Por puntuación global</button>
+        <select onchange="setSortMode('spec',this.value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:.82rem;cursor:pointer">
+            ${filterOpts}
+        </select>
+    </div>`;
+
+    if (sorted.length === 0) {
+        html += `<p style="text-align:center;color:var(--muted)">No hay registros para esa especialidad todavía.</p>`;
+        $("tabla-html").innerHTML = html; return;
+    }
+
+    html += `<table><thead><tr><th>#</th><th>Especialidades (preferencia)</th><th>Puntuación</th></tr></thead><tbody>`;
+    sorted.forEach((u, i) => {
         const tc   = tagColor[u.escala] || "tag-sub";
         const tl   = tagLabel[u.escala] || u.escala.toUpperCase();
-        const proc = u.proceso ? ` <small style="color:var(--muted)">(${u.proceso.replace(/_/g," ")})</small>` : "";
+        const specList = (u.specs && u.specs.length > 0) ? u.specs : [u.spec];
         const isMe = currentUserHash && u.hash === currentUserHash;
-        const rowStyle = isMe
-            ? 'background:linear-gradient(90deg,#e0f2fe,#f0fdf4);border-left:4px solid var(--secondary);'
-            : '';
+        const rowStyle = isMe ? 'background:linear-gradient(90deg,#e0f2fe,#f0fdf4);border-left:4px solid var(--secondary);' : '';
         const yoTag = isMe ? ' <span style="background:var(--secondary);color:white;padding:1px 7px;border-radius:10px;font-size:.7rem;font-weight:700;margin-left:4px">TÚ</span>' : '';
+        const specsHtml = specList.map((s,si) => {
+            const isFiltered = rankFilterSpec && s === rankFilterSpec;
+            return `<span style="${isFiltered?'font-weight:800;color:var(--primary)':''}">${si+1}. ${s}</span>`;
+        }).join('<br>');
         html += `<tr style="${rowStyle}">
             <td style="color:var(--muted);font-weight:${isMe?'800':'400'}">${i+1}</td>
-            <td><span class="tag ${tc}">${tl}</span> <b>${u.spec}</b>${proc}${yoTag}</td>
+            <td><span class="tag ${tc}">${tl}</span>${yoTag}<br><small style="line-height:1.8">${specsHtml}</small></td>
             <td style="color:var(--primary);font-weight:800;font-size:1.1rem">${parseFloat(u.nota).toFixed(3)}</td>
         </tr>`;
     });
@@ -1309,9 +1663,200 @@ function renderTable(data) {
     $("tabla-html").innerHTML = html;
 }
 
+function setSortMode(mode, spec) {
+    rankSortMode = mode;
+    rankFilterSpec = spec;
+    leerBin().then(lista => renderTable(lista)).catch(e => alert("Error: " + e.message));
+}
+
+// ══ Datos de Especialidades por proceso ═══════════════════
+const ESPECIALIDADES = {
+    oficial: {
+        directo_sin_tit: [
+            "ET — General (Sin exigencia titulación)",
+            "Armada — General (Sin exigencia)",
+            "Armada — Infantería de Marina (Sin exigencia)",
+            "AyE — General/Defensa y Control Aeroespacial (Sin exigencia)"
+        ],
+        directo_con_tit: [
+            "CC — Cuerpo Jurídico Militar",
+            "CC — Cuerpo Militar de Intervención",
+            "CC — Cuerpo Militar de Sanidad (Medicina)",
+            "CC — Cuerpo Militar de Sanidad (Farmacia)",
+            "CC — Cuerpo Militar de Sanidad (Veterinaria)",
+            "CC — Cuerpo Militar de Sanidad (Odontología)",
+            "CC — Cuerpo Militar de Sanidad (Psicología)",
+            "CC — Oficiales Enfermeros Cuerpo Militar de Sanidad"
+        ],
+        promo_interna: [
+            "ET — General (Sin exigencia titulación)",
+            "ET — General (Con exigencia titulación)",
+            "ET — General (Sin exigencia con créditos)",
+            "Armada — General (Sin exigencia)",
+            "Armada — General (Con exigencia)",
+            "Armada — General (Sin exigencia con créditos)",
+            "Armada — Infantería de Marina (Sin exigencia)",
+            "Armada — Infantería de Marina (Con exigencia)",
+            "Armada — Infantería de Marina (Sin exigencia con créditos)",
+            "AyE — General/Defensa y Control Aeroespacial (Sin exigencia)",
+            "AyE — General/Defensa y Control Aeroespacial (Con exigencia)",
+            "AyE — General/Defensa y Control Aeroespacial (Sin exigencia con créditos)",
+            "AyE — General/Vuelo V1N (Con exigencia)",
+            "AyE — General/Ciberespacio (Con exigencia)"
+        ]
+    },
+    suboficial: {
+        promo_interna: [
+            "ET — Infantería",
+            "ET — Transmisiones",
+            "ET — Electrónica y Telecomunicaciones",
+            "ET — Mantenimiento y Montaje de Equipos",
+            "ET — Informática",
+            "ET — Automoción",
+            "ET — Mantenimiento de Aeronaves",
+            "ET — Mantenimiento de Armamento y Material",
+            "Armada CG — Comunicaciones y Sistemas de Información",
+            "Armada CG — Sistemas",
+            "Armada IM — Infantería de Marina",
+            "AyE — Protección de la Fuerza y Apoyo a las Operaciones",
+            "AyE — Mantenimiento Aeronáutico",
+            "AyE — Mantenimiento Electrónico",
+            "AyE — Sistemas de Información, Comunicaciones y Ciberdefensa",
+            "AyE — Control Aéreo",
+            "AyE — Administración"
+        ],
+        directo_con_ts: [
+            "ET — Infantería",
+            "ET — Transmisiones",
+            "ET — Electrónica y Telecomunicaciones",
+            "ET — Mantenimiento y Montaje de Equipos",
+            "ET — Informática",
+            "ET — Automoción",
+            "ET — Mantenimiento de Aeronaves",
+            "ET — Mantenimiento de Armamento y Material",
+            "Armada CG — Comunicaciones y Sistemas de Información",
+            "Armada CG — Sistemas",
+            "Armada IM — Infantería de Marina",
+            "AyE — Protección de la Fuerza y Apoyo a las Operaciones",
+            "AyE — Mantenimiento Aeronáutico",
+            "AyE — Mantenimiento Electrónico",
+            "AyE — Sistemas de Información, Comunicaciones y Ciberdefensa",
+            "AyE — Control Aéreo",
+            "AyE — Administración"
+        ],
+        directo_sin_ts: [
+            "ET — Infantería",
+            "ET — Transmisiones",
+            "ET — Electrónica y Telecomunicaciones",
+            "ET — Mantenimiento y Montaje de Equipos",
+            "ET — Informática",
+            "ET — Automoción",
+            "ET — Mantenimiento de Aeronaves",
+            "ET — Mantenimiento de Armamento y Material",
+            "Armada CG — Comunicaciones y Sistemas de Información",
+            "Armada CG — Sistemas",
+            "Armada IM — Infantería de Marina",
+            "AyE — Protección de la Fuerza y Apoyo a las Operaciones",
+            "AyE — Mantenimiento Aeronáutico",
+            "AyE — Mantenimiento Electrónico",
+            "AyE — Sistemas de Información, Comunicaciones y Ciberdefensa",
+            "AyE — Control Aéreo",
+            "AyE — Administración"
+        ]
+    },
+    cuerpos_comunes: {
+        ingreso_directo: [
+            "CC — Cuerpo Jurídico Militar",
+            "CC — Cuerpo Militar de Intervención",
+            "CC — Cuerpo Militar de Sanidad (Medicina)",
+            "CC — Cuerpo Militar de Sanidad (Farmacia)",
+            "CC — Cuerpo Militar de Sanidad (Veterinaria)",
+            "CC — Cuerpo Militar de Sanidad (Odontología)",
+            "CC — Cuerpo Militar de Sanidad (Psicología)",
+            "CC — Oficiales Enfermeros Cuerpo Militar de Sanidad",
+            "CC — Suboficiales Cuerpo de Músicas Militares"
+        ],
+        cambio_cuerpo: [
+            "CC — Cuerpo Jurídico Militar",
+            "CC — Cuerpo Militar de Intervención",
+            "CC — Oficiales Enfermeros Cuerpo Militar de Sanidad",
+            "CC — Cuerpo de Músicas Militares (Dirección)",
+            "CC — Suboficiales Cuerpo de Músicas Militares"
+        ]
+    }
+};
+
+
 // Inicializar
 onEscalaChange();
 togglePromoTS();
+initSpecList();
+
+
+function getOpcionesEspecialidad() {
+    const esc = getEscala();
+    const proc = getProceso();
+    const procCC = getProcesoCc();
+    if (esc === "oficial") return ESPECIALIDADES.oficial[getProcesoOf()] || ESPECIALIDADES.oficial.promo_interna || [];
+    if (esc === "suboficial") return ESPECIALIDADES.suboficial[proc] || [];
+    if (esc === "cuerpos_comunes") return ESPECIALIDADES.cuerpos_comunes[procCC] || [];
+    return [];
+}
+
+function buildSpecSelect(index) {
+    const opts = getOpcionesEspecialidad();
+    let s = `<select style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.9rem">`;
+    s += `<option value="">-- Selecciona especialidad --</option>`;
+    opts.forEach(o => { s += `<option value="${o}">${o}</option>`; });
+    s += `</select>`;
+    return s;
+}
+
+function initSpecList() {
+    const container = $("spec-list");
+    if (!container) return;
+    container.innerHTML = "";
+    addEspecialidad();
+}
+
+function addEspecialidad() {
+    const container = $("spec-list");
+    const rows = container.querySelectorAll(".spec-row");
+    if (rows.length >= 5) return alert("Máximo 5 especialidades.");
+    const idx = rows.length + 1;
+    const div = document.createElement("div");
+    div.className = "spec-row";
+    div.innerHTML = `<div class="num">${idx}</div>${buildSpecSelect(idx)}<button class="rm-btn" onclick="removeEspecialidad(this)">✕</button>`;
+    container.appendChild(div);
+    renumberSpecs();
+}
+
+function removeEspecialidad(btn) {
+    const row = btn.closest(".spec-row");
+    if ($("spec-list").querySelectorAll(".spec-row").length <= 1) return alert("Debe haber al menos una especialidad.");
+    row.remove();
+    renumberSpecs();
+}
+
+function renumberSpecs() {
+    $("spec-list").querySelectorAll(".spec-row").forEach((row, i) => {
+        row.querySelector(".num").textContent = i + 1;
+    });
+}
+
+function getSpecsSeleccionadas() {
+    const selects = $("spec-list").querySelectorAll("select");
+    const specs = [];
+    selects.forEach(s => { if (s.value) specs.push(s.value); });
+    return specs;
+}
+
+// Regenerar opciones del selector cuando cambia la escala/proceso
+const _origOnEsc = onEscalaChange;
+onEscalaChange = function() {
+    _origOnEsc();
+    initSpecList();
+};
 </script>
 </body>
 </html>
