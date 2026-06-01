@@ -68,6 +68,12 @@
         .sort-bar { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
         .sort-btn { padding:6px 12px; border:1px solid var(--border); border-radius:6px; background:white; cursor:pointer; font-size:.82rem; font-weight:600; }
         .sort-btn.active { background:var(--primary); color:white; border-color:var(--primary); }
+        .novedad-card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
+        .novedad-card .tipo-tag { font-size:.72rem; background:#fee2e2; color:#dc2626; padding:2px 8px; border-radius:10px; display:inline-block; margin-bottom:8px; font-weight:600; }
+        .novedad-card .pregunta { font-size:.9rem; color:var(--text); font-style:italic; margin-bottom:12px; padding-left:10px; border-left:3px solid var(--border); }
+        .novedad-card .respuesta { background:#f0fdf4; border-left:4px solid var(--secondary); padding:12px 14px; border-radius:6px; font-size:.9rem; color:var(--text); line-height:1.6; }
+        .novedad-card .respuesta::before { content:"↳ Respuesta: "; font-weight:700; color:var(--secondary); }
+        .novedad-card .fecha-tag { font-size:.72rem; color:var(--muted); margin-top:8px; }
     </style>
 </head>
 <body>
@@ -75,6 +81,7 @@
     <nav class="main-nav">
         <button class="nav-btn active" onclick="showView('calc-view',event)">Calculadora</button>
         <button class="nav-btn" onclick="showView('rank-view',event)">Escalafón Global</button>
+        <button class="nav-btn" id="nav-novedades" onclick="showView('novedades-view',event)">📢 Novedades</button>
     </nav>
 
     <!-- Top bar -->
@@ -848,6 +855,7 @@ function showView(viewId, event) {
     $(viewId).style.display = "block";
     document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
     if (event) event.target.classList.add("active");
+    if (viewId === "novedades-view") cargarNovedades();
 }
 
 function nextStep(s) {
@@ -1359,13 +1367,73 @@ function calcularBaremo() {
         notaGlobal = isOf ? (vmm / 2) + vma : vmm + vma;
     }
 
+    // ── Calcular la vía competitiva (grupo en el que compite el aspirante) ──
+    let viaCompetitiva = "";
+    if (isOfSinTit2) {
+        const viaOf = $("of_sin_tit_via") ? $("of_sin_tit_via").value : "evau";
+        viaCompetitiva = "Oficiales · Directo sin titulación · " + (viaOf === "evau" ? "Vía EvAU" : "Vía CACRED");
+    } else if (isOfConTit2) {
+        viaCompetitiva = "Oficiales · Directo con titulación universitaria";
+    } else if (isOfPromo2) {
+        const tipoVma2 = $("of_promo_tipo_vma") ? $("of_promo_tipo_vma").value : "con_exig";
+        const vmaLabel = { con_exig: "Con exigencia titulación", sin_exig_cred: "Sin exigencia con créditos", sin_exig: "Sin exigencia" }[tipoVma2];
+        viaCompetitiva = "Oficiales · Promo Interna · " + vmaLabel;
+    } else if (isDirSin) {
+        // Detectar qué vía ha puntuado más
+        const bachVal = val("promo_bach_nota") >= 5 ? val("promo_bach_nota") * (parseFloat($("promo_bach_mod").value)||1) * 2 : 0;
+        const gmVal   = val("promo_gm_nota") >= 5 ? val("promo_gm_nota") * 2 : 0;
+        const gsVal   = val("prueba_gs_nota") >= 5 ? val("prueba_gs_nota") * 2 : 0;
+        const cOtros  = parseFloat($("promo_via_c_otros").value) || 0;
+        const maxVal  = Math.max(bachVal, gmVal, gsVal, cOtros);
+        let viaLabel = "Vía C";
+        if (bachVal === maxVal && bachVal > 0) viaLabel = "Vía A (Bachillerato)";
+        else if (gmVal === maxVal && gmVal > 0) viaLabel = "Vía B (Técnico Grado Medio)";
+        viaCompetitiva = "Suboficiales · Promo Interna · Sin TS · " + viaLabel;
+    } else if (isDirCon) {
+        viaCompetitiva = "Suboficiales · Directo · Con exigencia TS";
+    } else if (proc === "directo_sin_ts" && isSub) {
+        // Ingreso directo sub sin TS
+        const bVal = val("bach_nota") >= 5 ? val("bach_nota") * (parseFloat($("bach_modalidad").value)||1) : 0;
+        const gVal = val("gm_nota") >= 5 ? val("gm_nota") : 0;
+        const pVal = val("prueba_gs_nota") >= 5 ? val("prueba_gs_nota") : 0;
+        const cVal = parseFloat($("via_c_otros").value) || 0;
+        const mx   = Math.max(bVal, gVal, pVal, cVal);
+        let vl = "Vía C";
+        if (bVal === mx && bVal > 0) vl = "Vía A (Bachillerato)";
+        else if (gVal === mx && gVal > 0) vl = "Vía B (Técnico Grado Medio)";
+        viaCompetitiva = "Suboficiales · Directo · Sin TS · " + vl;
+    } else if (proc === "directo_con_ts" && isSub) {
+        viaCompetitiva = "Suboficiales · Directo · Con TS";
+    } else if (isPromo) {
+        const exTS = $("promo_exige_ts") ? $("promo_exige_ts").value : "sin_ts";
+        if (exTS === "con_ts") {
+            viaCompetitiva = "Suboficiales · Promo Interna · Con TS";
+        } else {
+            const bV = val("promo_bach_nota") >= 5 ? val("promo_bach_nota") * (parseFloat($("promo_bach_mod").value)||1) * 2 : 0;
+            const gV = val("promo_gm_nota") >= 5 ? val("promo_gm_nota") * 2 : 0;
+            const sV = val("promo_prueba_gs") >= 5 ? val("promo_prueba_gs") * 2 : 0;
+            const cV = parseFloat($("promo_via_c_otros").value) || 0;
+            const mx2 = Math.max(bV, gV, sV, cV);
+            let vl2 = "Vía C";
+            if (bV === mx2 && bV > 0) vl2 = "Vía A (Bachillerato)";
+            else if (gV === mx2 && gV > 0) vl2 = "Vía B (Técnico Grado Medio)";
+            viaCompetitiva = "Suboficiales · Promo Interna · Sin TS · " + vl2;
+        }
+    } else if (isCCDir) {
+        viaCompetitiva = "CC · Ingreso Directo";
+    } else if (isCCCambio) {
+        viaCompetitiva = "CC · Cambio de Cuerpo/Escala";
+    }
+    // Guardar globalmente para usarla al publicar
+    window._viaCompetitiva = viaCompetitiva;
+
     $("nota-final").textContent = notaGlobal.toFixed(3);
     $("desglose-resumen").textContent = `VMM: ${vmm.toFixed(3)} pts  |  VMA: ${vma.toFixed(3)} pts`;
     const fStr = isOf
         ? `PFC = VMM(${vmm.toFixed(3)})/2 + VMA(${vma.toFixed(3)}) = <b>${notaGlobal.toFixed(3)}</b>`
         : `PFC = VMM(${vmm.toFixed(3)}) + VMA(${vma.toFixed(3)}) = <b>${notaGlobal.toFixed(3)}</b>`;
     $("desglose-detalle").innerHTML =
-        `<b>VMM:</b> ${desgVMM}<br><b>VMA:</b> ${desgVMA}<br><b>Fórmula:</b> ${fStr}`;
+        `<b>VMM:</b> ${desgVMM}<br><b>VMA:</b> ${desgVMA}<br><b>Fórmula:</b> ${fStr}<br><b>Vía competitiva:</b> ${viaCompetitiva}`;
 
     nextStep(7);
 }
@@ -1441,7 +1509,7 @@ async function guardarEnNube() {
     btn.innerText = "Sincronizando..."; btn.disabled = true;
     try {
         const hash = hashId(id);
-        await registrarEntrada({ hash, spec, specs, escala: esc, proceso: proc, nota: notaGlobal });
+        await registrarEntrada({ hash, spec, specs, escala: esc, proceso: proc, nota: notaGlobal, via: window._viaCompetitiva || "" });
         currentUserHash = hash;
         alert("Nota guardada en el escalafón global.");
         $("unlock-id").value = id;
@@ -1569,24 +1637,114 @@ function renderAdmin(data, incidencias) {
         html += `</tbody></table></div>`;
     }
 
-    // Incidencias table
-    const tipoLabel = { error_calculo:"Error calculo", error_puntuacion:"Puntuacion incorrecta", fallo_tecnico:"Fallo tecnico", normativa:"Discrepancia normativa", otro:"Otro" };
-    html += `<h4 style="color:#dc2626;margin-top:24px;margin-bottom:8px">Incidencias (${incidencias.length})</h4>`;
+    // Incidencias
+    const tipoLabel = { error_calculo:"Error cálculo", error_puntuacion:"Puntuación incorrecta", fallo_tecnico:"Fallo técnico", normativa:"Discrepancia normativa", otro:"Otro" };
+    const pendientes = incidencias.filter(i => !i.respuesta);
+    const respondidas = incidencias.filter(i => i.respuesta);
+    html += `<h4 style="color:#dc2626;margin-top:24px;margin-bottom:8px">
+        Incidencias pendientes (${pendientes.length})
+        ${respondidas.length > 0 ? `<span style="color:var(--secondary);font-size:.8rem;margin-left:10px">· ${respondidas.length} ya respondidas (visibles en Novedades)</span>` : ''}
+    </h4>`;
     if (incidencias.length === 0) {
         html += "<p style='color:var(--muted);font-size:.9rem'>Sin incidencias.</p>";
     } else {
-        html += `<div style="overflow-x:auto"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Descripcion</th><th></th></tr></thead><tbody>`;
         incidencias.forEach((inc) => {
-            html += `<tr>
-                <td style="font-size:.78rem;color:var(--muted);white-space:nowrap">${inc.fecha}</td>
-                <td><span style="font-size:.78rem;background:#fee2e2;color:#dc2626;padding:2px 5px;border-radius:4px">${tipoLabel[inc.tipo]||inc.tipo}</span></td>
-                <td style="font-size:.85rem">${inc.desc}</td>
-                <td><button onclick="borrarIncidencia('${inc.id}')" style="background:#6b7280;color:white;border:none;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:.8rem">x</button></td>
-            </tr>`;
+            const yaRespondida = !!inc.respuesta;
+            html += `<div style="border:1px solid ${yaRespondida?'#86efac':'#cbd5e1'};border-radius:8px;padding:12px;margin-bottom:10px;background:${yaRespondida?'#f0fdf4':'#ffffff'}">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
+                    <div style="flex:1">
+                        <span style="font-size:.72rem;background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:4px">${tipoLabel[inc.tipo]||inc.tipo}</span>
+                        <span style="font-size:.72rem;color:var(--muted);margin-left:6px">${inc.fecha}</span>
+                        <p style="margin:6px 0 0;font-size:.88rem">${inc.desc}</p>
+                        ${yaRespondida ? `<div style="margin-top:8px;padding:8px;background:#dcfce7;border-radius:6px;font-size:.85rem"><b style="color:var(--secondary)">↳ Respuesta:</b> ${inc.respuesta}</div>` : ''}
+                    </div>
+                    <div style="display:flex;gap:6px;flex-shrink:0">
+                        <button onclick="abrirResponder('${inc.id}')" style="background:var(--secondary);color:white;border:none;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:.8rem">
+                            ${yaRespondida ? '✏️ Editar' : '💬 Responder'}
+                        </button>
+                        <button onclick="borrarIncidencia('${inc.id}')" style="background:#6b7280;color:white;border:none;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:.8rem">✕</button>
+                    </div>
+                </div>
+            </div>`;
         });
-        html += `</tbody></table></div>`;
     }
+
+    // Modal de respuesta (oculto)
+    html += `<div id="modal-responder" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px">
+        <div style="background:white;border-radius:16px;padding:28px;max-width:500px;width:100%">
+            <h3 style="margin-top:0;color:var(--primary)">Responder a la incidencia</h3>
+            <textarea id="respuesta-texto" rows="5" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box;font-size:.9rem;font-family:inherit" placeholder="Escribe tu respuesta..."></textarea>
+            <div style="display:flex;gap:10px;margin-top:14px">
+                <button onclick="cerrarResponder()" style="flex:1;padding:12px;background:#e2e8f0;border:none;border-radius:8px;cursor:pointer;font-weight:bold">Cancelar</button>
+                <button onclick="enviarRespuesta()" style="flex:1;padding:12px;background:var(--secondary);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:bold">Publicar respuesta</button>
+            </div>
+        </div>
+    </div>`;
+
     $("tabla-admin").innerHTML = html;
+}
+
+// ── Responder incidencias (admin) ────────────────────────
+let _incidenciaActual = null;
+
+function abrirResponder(id) {
+    _incidenciaActual = id;
+    const modal = $("modal-responder");
+    if (!modal) return;
+    // Pre-rellenar si ya tiene respuesta
+    const container = $("tabla-admin");
+    $("respuesta-texto").value = "";
+    modal.style.display = "flex";
+}
+function cerrarResponder() {
+    const modal = $("modal-responder");
+    if (modal) modal.style.display = "none";
+    _incidenciaActual = null;
+}
+async function enviarRespuesta() {
+    const texto = $("respuesta-texto").value.trim();
+    if (!texto) return alert("Escribe una respuesta.");
+    if (!_incidenciaActual) return;
+    try {
+        const res = await fetch(API + "/incidencia/" + _incidenciaActual + "/respuesta", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Admin-Key": adminPin },
+            body: JSON.stringify({ respuesta: texto })
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        cerrarResponder();
+        const { lista, incidencias } = await leerBinCompleto();
+        renderAdmin(lista, incidencias);
+    } catch(e) { alert("Error: " + e.message); }
+}
+
+// ── Cargar novedades (vista pública) ─────────────────────
+async function cargarNovedades() {
+    const container = $("novedades-content");
+    container.innerHTML = "<p style='text-align:center;color:var(--muted)'>Cargando...</p>";
+    try {
+        const { incidencias } = await leerBinCompleto();
+        const respondidas = (incidencias || []).filter(i => i.respuesta);
+        if (respondidas.length === 0) {
+            container.innerHTML = "<p style='text-align:center;color:var(--muted)'>No hay novedades todavía.</p>";
+            return;
+        }
+        const tipoLabel = { error_calculo:"Error en cálculo", error_puntuacion:"Puntuación incorrecta", fallo_tecnico:"Fallo técnico", normativa:"Discrepancia normativa", otro:"Otros" };
+        let html2 = "";
+        // Ordenar por fecha descendente
+        respondidas.sort((a,b) => b.id.localeCompare(a.id));
+        respondidas.forEach(inc => {
+            html2 += `<div class="novedad-card">
+                <span class="tipo-tag">${tipoLabel[inc.tipo]||inc.tipo}</span>
+                <div class="pregunta">${inc.desc}</div>
+                <div class="respuesta">${inc.respuesta}</div>
+                <div class="fecha-tag">${inc.fecha}</div>
+            </div>`;
+        });
+        container.innerHTML = html2;
+    } catch(e) {
+        container.innerHTML = "<p style='text-align:center;color:#dc2626'>Error al cargar novedades.</p>";
+    }
 }
 
 async function borrarRegistro(hash) {
@@ -1616,37 +1774,48 @@ async function vaciarLista() {
     } catch(e) { alert("Error: " + e.message); }
 }
 
-let rankSortMode = "nota"; // "nota" | "spec"
+let rankSortMode = "nota";
 let rankFilterSpec = "";
+let rankFilterVia  = "";
 
 function renderTable(data) {
     const tagColor = { oficial:"tag-of", suboficial:"tag-sub", cuerpos_comunes:"tag-cc" };
     const tagLabel = { oficial:"OFICIAL", suboficial:"SUBOFICIAL", cuerpos_comunes:"CC" };
 
-    // Recopilar todas las especialidades únicas para el filtro
+    // Recopilar especialidades y vías únicas
     const allSpecs = [...new Set(data.flatMap(u => u.specs || [u.spec]).filter(Boolean))].sort();
+    const allVias  = [...new Set(data.map(u => u.via).filter(Boolean))].sort();
 
-    // Ordenar
+    // Aplicar filtros
     let sorted = [...data];
-    if (rankSortMode === "spec" && rankFilterSpec) {
-        // Solo los que tienen esa especialidad, ordenados por nota
-        sorted = sorted.filter(u => (u.specs || [u.spec]).includes(rankFilterSpec));
-        sorted.sort((a,b) => b.nota - a.nota);
-    } else {
-        sorted.sort((a,b) => b.nota - a.nota);
+    if (rankFilterVia) {
+        sorted = sorted.filter(u => u.via === rankFilterVia);
     }
+    if (rankFilterSpec) {
+        sorted = sorted.filter(u => (u.specs || [u.spec]).includes(rankFilterSpec));
+    }
+    sorted.sort((a,b) => b.nota - a.nota);
 
-    // Barra de ordenación
-    let filterOpts = `<option value="">— Todas —</option>`;
-    allSpecs.forEach(s => { filterOpts += `<option value="${s}" ${s===rankFilterSpec?"selected":""}>${s}</option>`; });
+    // Barra de filtros
+    let specOpts = `<option value="">— Todas las especialidades —</option>`;
+    allSpecs.forEach(s => { specOpts += `<option value="${s}" ${s===rankFilterSpec?"selected":""}>${s}</option>`; });
+    let viaOpts = `<option value="">— Todas las vías —</option>`;
+    allVias.forEach(v => { viaOpts += `<option value="${v}" ${v===rankFilterVia?"selected":""}>${v}</option>`; });
+
+    const totalMostrados = sorted.length;
+    const totalGlobal    = data.length;
 
     let html = `<div class="sort-bar">
-        <span style="font-size:.82rem;font-weight:600;color:var(--muted)">Ordenar/Filtrar:</span>
-        <button class="sort-btn ${rankSortMode==='nota'&&!rankFilterSpec?'active':''}" onclick="setSortMode('nota','')">🏆 Por puntuación global</button>
-        <select onchange="setSortMode('spec',this.value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:.82rem;cursor:pointer">
-            ${filterOpts}
+        <span style="font-size:.82rem;font-weight:600;color:var(--muted)">Filtrar:</span>
+        <select onchange="setFiltroVia(this.value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:.82rem;cursor:pointer;flex:2">
+            ${viaOpts}
         </select>
-    </div>`;
+        <select onchange="setFiltroSpec(this.value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:.82rem;cursor:pointer;flex:2">
+            ${specOpts}
+        </select>
+        <button class="sort-btn ${!rankFilterVia&&!rankFilterSpec?'active':''}" onclick="setFiltroVia('');setFiltroSpec('')">✕ Quitar filtros</button>
+    </div>
+    ${rankFilterVia || rankFilterSpec ? `<p style="font-size:.8rem;color:var(--muted);margin:4px 0 8px">Mostrando <b>${totalMostrados}</b> de ${totalGlobal} participantes</p>` : ''}`;
 
     if (sorted.length === 0) {
         html += `<p style="text-align:center;color:var(--muted)">No hay registros para esa especialidad todavía.</p>`;
@@ -1665,9 +1834,13 @@ function renderTable(data) {
             const isFiltered = rankFilterSpec && s === rankFilterSpec;
             return `<span style="${isFiltered?'font-weight:800;color:var(--primary)':''}">${si+1}. ${s}</span>`;
         }).join('<br>');
-        html += `<tr style="${rowStyle}">
+        const viaHtml = u.via
+            ? `<br><span style="font-size:.72rem;background:#f1f5f9;color:var(--muted);padding:1px 6px;border-radius:10px;display:inline-block;margin-top:3px">${u.via}</span>`
+            : '';
+        const isMyVia = rankFilterVia && u.via === rankFilterVia;
+        html += `<tr style="${rowStyle}${isMyVia&&!isMe?'border-left:3px solid #94a3b8;':''}">
             <td style="color:var(--muted);font-weight:${isMe?'800':'400'}">${i+1}</td>
-            <td><span class="tag ${tc}">${tl}</span>${yoTag}<br><small style="line-height:1.8">${specsHtml}</small></td>
+            <td><span class="tag ${tc}">${tl}</span>${yoTag}${viaHtml}<br><small style="line-height:1.8">${specsHtml}</small></td>
             <td style="color:var(--primary);font-weight:800;font-size:1.1rem">${parseFloat(u.nota).toFixed(3)}</td>
         </tr>`;
     });
@@ -1675,6 +1848,15 @@ function renderTable(data) {
     $("tabla-html").innerHTML = html;
 }
 
+function setFiltroVia(via) {
+    rankFilterVia = via;
+    leerBin().then(lista => renderTable(lista)).catch(e => alert("Error: " + e.message));
+}
+function setFiltroSpec(spec) {
+    rankFilterSpec = spec;
+    leerBin().then(lista => renderTable(lista)).catch(e => alert("Error: " + e.message));
+}
+// Mantener compatibilidad con código anterior
 function setSortMode(mode, spec) {
     rankSortMode = mode;
     rankFilterSpec = spec;
