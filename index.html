@@ -93,7 +93,7 @@
             <div class="instruc-item"><div class="instruc-num">1</div><div><b>Selecciona tu escala y proceso</b> en el Paso 1. Si eres Suboficial, elige además el tipo de proceso (Promoción Interna, Ingreso Directo con o sin TS), ya que cada uno tiene una baremación diferente.</div></div>
             <div class="instruc-item"><div class="instruc-num">2</div><div><b>Rellena cada paso con tus datos reales.</b> Para el tiempo de servicios, introduce solo los meses completos. Los días que no completen un mes no se computan.</div></div>
             <div class="instruc-item"><div class="instruc-num">3</div><div><b>IPEC (Informes de Calificación):</b> introduce la nota global de tus dos últimos informes disponibles. Si tu informe usa letras, la equivalencia es: A=9,5 · B=8,5 · C=7,5 · D=6,5 · E=4.</div></div>
-            <div class="instruc-item"><div class="instruc-num">4</div><div><b>Al publicar tu nota, tu identificación es confidencial.</b> El NIO/ID que introduzcas se convierte en un código anónimo antes de guardarse; nadie podrá asociar tu puntuación con tu identidad.</div></div>
+            <div class="instruc-item"><div class="instruc-num">4</div><div><b>Al publicar tu nota, tu identificación es confidencial.</b> El DNI o ID que introduzcas se convierte en un código anónimo antes de guardarse; nadie podrá asociar tu puntuación con tu identidad.</div></div>
             <div class="instruc-item"><div class="instruc-num">5</div><div><b>Para rectificar errores</b>, simplemente vuelve a calcular y publica con el mismo ID. Tu entrada anterior se sustituirá automáticamente por la nueva.</div></div>
             <div class="instruc-item"><div class="instruc-num">6</div><div><b>Para ver el escalafón global</b> debes haber publicado tu nota previamente. Accede con el mismo ID con el que publicaste.</div></div>
             <div class="instruc-item"><div class="instruc-num">7</div><div><b>Si detectas un error en la baremación</b>, usa el botón <span style="background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:4px;font-size:.85rem">⚠️ Reportar Incidencia</span> para comunicarlo. Los administradores lo revisarán.</div></div>
@@ -776,8 +776,8 @@
     <div class="desglose-box" id="desglose-detalle"></div>
     <hr style="border:1px solid var(--border);margin:25px 0">
     <h3 style="margin-bottom:10px">Únete al Escalafón Global</h3>
-    <p style="font-size:.85rem;color:var(--muted);margin-bottom:15px">Guarda tu nota de forma anónima para ver en qué posición quedas. Tu NIO/ID no se mostrará públicamente.</p>
-    <div class="input-group"><label>ID Privado (NIO/ID):</label><input type="text" id="u_id" placeholder="12345678A"></div>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:15px">Guarda tu nota de forma anónima para ver en qué posición quedas. Tu DNI no se mostrará públicamente.</p>
+    <div class="input-group"><label>ID Privado (DNI):</label><input type="text" id="u_id" placeholder="12345678A"></div>
 
     <div class="input-group">
         <label>Especialidades a las que optas (por orden de preferencia):</label>
@@ -800,7 +800,7 @@
             <!-- Login -->
             <div id="rank-lock">
                 <p style="font-size:.9rem;color:var(--muted)">Introduce tu ID Privado para acceder al listado.</p>
-                <div class="input-group" style="margin-top:15px"><input type="text" id="unlock-id" placeholder="Tu NIO/ID Privado"></div>
+                <div class="input-group" style="margin-top:15px"><input type="text" id="unlock-id" placeholder="Tu DNI/ID Privado"></div>
                 <button class="btn btn-primary" style="width:100%" onclick="cargarRanking()">Entrar al Listado</button>
             </div>
 
@@ -1459,25 +1459,22 @@ async function cargarRanking() {
     const container = $("tabla-html");
     if (!unlockId) return alert("Escribe tu ID.");
 
-    // Acceso admin: el PIN se valida en el Worker (nunca expuesto en el JS)
-    if (unlockId === "fas.2026") {
-        // Guardar en memoria de sesión únicamente
-        adminPin = unlockId;
-        // Verificar que el Worker acepta el PIN antes de entrar
-        try {
-            const testRes = await fetch(API + "/vaciar", {
-                method: "OPTIONS", // preflight — no borra nada
-                headers: { "X-Admin-Key": adminPin }
-            });
-            // Si llega aquí sin error de red, la validación real ocurre en las operaciones
-        } catch(_) {}
-        $("unlock-id").value = "";
-        $("rank-lock").style.display    = "none";
-        $("rank-content").style.display = "none";
-        $("rank-admin").style.display   = "block";
-        modoAdmin = true;
-        cargarTablaAdmin();
-        return;
+    // Acceso admin: el Worker valida el PIN — el cliente nunca sabe cuál es
+    const verifyRes = await fetch(API + "/admin/verify", {
+        headers: { "X-Admin-Key": unlockId }
+    });
+    if (verifyRes.ok) {
+        const { admin } = await verifyRes.json();
+        if (admin) {
+            adminPin = unlockId; // guardado solo en memoria de sesión
+            $("unlock-id").value = "";
+            $("rank-lock").style.display    = "none";
+            $("rank-content").style.display = "none";
+            $("rank-admin").style.display   = "block";
+            modoAdmin = true;
+            cargarTablaAdmin();
+            return;
+        }
     }
 
     container.innerHTML = "<p style='text-align:center'>Cargando...</p>";
