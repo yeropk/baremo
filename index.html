@@ -784,7 +784,7 @@
     <hr style="border:1px solid var(--border);margin:25px 0">
     <h3 style="margin-bottom:10px">Únete al Escalafón Global</h3>
     <p style="font-size:.85rem;color:var(--muted);margin-bottom:15px">Guarda tu nota de forma anónima para ver en qué posición quedas. Tu NIO/ID no se mostrará públicamente.</p>
-    <div class="input-group"><label>ID Privado (NIO):</label><input type="text" id="u_id" placeholder="12345678A"></div>
+    <div class="input-group"><label>ID Privado (NIO/ID):</label><input type="text" id="u_id" placeholder="12345678A"></div>
 
     <div class="input-group">
         <label>Especialidades a las que optas (por orden de preferencia):</label>
@@ -823,9 +823,10 @@
                     <b>Modo Administrador</b> — Puedes eliminar registros individuales o vaciar toda la lista.
                 </div>
                 <div id="tabla-admin"></div>
-                <div style="display:flex;gap:10px;margin-top:20px;">
+                <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
                     <button class="btn btn-outline" style="flex:1" onclick="cerrarSesion()">Cerrar Sesión Admin</button>
-                    <button class="btn" style="flex:1;background:#dc2626;color:white;font-weight:bold" onclick="vaciarLista()">🗑 Vaciar Lista Completa</button>
+                    <button class="btn" style="flex:1;background:var(--secondary);color:white;font-weight:bold" onclick="abrirCrearNovedad()">📢 Crear Novedad</button>
+                    <button class="btn" style="flex:1;background:#dc2626;color:white;font-weight:bold" onclick="vaciarLista()">🗑 Vaciar Lista</button>
                 </div>
             </div>
         </div>
@@ -1448,7 +1449,7 @@ async function leerBinCompleto() {
     const res = await fetch(API + "/datos");
     if (!res.ok) throw new Error("HTTP " + res.status);
     const rec = await res.json();
-    return { lista: rec.lista || [], incidencias: rec.incidencias || [] };
+    return { lista: rec.lista || [], incidencias: rec.incidencias || [], novedades: rec.novedades || [] };
 }
 async function leerBin() {
     return (await leerBinCompleto()).lista;
@@ -1605,7 +1606,8 @@ function cerrarSesion() {
 async function cargarTablaAdmin() {
     $("tabla-admin").innerHTML = "<p style='text-align:center'>Cargando...</p>";
     try {
-        const { lista, incidencias } = await leerBinCompleto();
+        const { lista, incidencias, novedades } = await leerBinCompleto();
+        window._adminNovedades = novedades || [];
         renderAdmin(lista, incidencias);
     } catch(e) { alert("Error: " + e.message); }
 }
@@ -1681,6 +1683,26 @@ function renderAdmin(data, incidencias) {
         </div>
     </div>`;
 
+    // Sección novedades personalizadas
+    const novedadesAdmin = (window._adminNovedades || []);
+    html += `<h4 style="color:var(--secondary);margin-top:24px;margin-bottom:8px">📢 Novedades publicadas (${novedadesAdmin.length})</h4>`;
+    if (novedadesAdmin.length === 0) {
+        html += "<p style='color:var(--muted);font-size:.9rem'>No hay novedades personalizadas.</p>";
+    } else {
+        novedadesAdmin.forEach(nov => {
+            html += `<div style="border:1px solid #86efac;border-radius:8px;padding:12px;margin-bottom:10px;background:#f0fdf4">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+                    <div style="flex:1">
+                        <b style="color:var(--primary);font-size:.95rem">${nov.titulo}</b>
+                        <p style="margin:6px 0 0;font-size:.88rem">${nov.contenido}</p>
+                        <span style="font-size:.72rem;color:var(--muted)">${nov.fecha}</span>
+                    </div>
+                    <button onclick="borrarNovedad('${nov.id}')" style="background:#6b7280;color:white;border:none;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:.8rem;flex-shrink:0">✕</button>
+                </div>
+            </div>`;
+        });
+    }
+
     $("tabla-admin").innerHTML = html;
 }
 
@@ -1718,29 +1740,80 @@ async function enviarRespuesta() {
     } catch(e) { alert("Error: " + e.message); }
 }
 
+// ── Crear novedades personalizadas (admin) ───────────────
+function abrirCrearNovedad() {
+    const titulo = prompt("Título de la novedad:");
+    if (!titulo) return;
+    const contenido = prompt("Contenido / mensaje:");
+    if (!contenido) return;
+    crearNovedad(titulo, contenido);
+}
+
+async function crearNovedad(titulo, contenido) {
+    try {
+        const res = await fetch(API + "/novedad", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Admin-Key": adminPin },
+            body: JSON.stringify({ titulo, contenido })
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        cargarTablaAdmin();
+    } catch(e) { alert("Error: " + e.message); }
+}
+
+async function borrarNovedad(id) {
+    if (!confirm("¿Eliminar esta novedad?")) return;
+    try {
+        await adminDelete("/novedad/" + id);
+        cargarTablaAdmin();
+    } catch(e) { alert("Error: " + e.message); }
+}
+
 // ── Cargar novedades (vista pública) ─────────────────────
 async function cargarNovedades() {
     const container = $("novedades-content");
     container.innerHTML = "<p style='text-align:center;color:var(--muted)'>Cargando...</p>";
     try {
-        const { incidencias } = await leerBinCompleto();
+        const { incidencias, novedades } = await leerBinCompleto();
         const respondidas = (incidencias || []).filter(i => i.respuesta);
-        if (respondidas.length === 0) {
+        const custom = novedades || [];
+
+        // Unificar en un solo array con tipo para ordenar por fecha
+        const items = [];
+        respondidas.forEach(inc => items.push({ type: "respuesta", id: inc.id, data: inc }));
+        custom.forEach(nov => items.push({ type: "novedad", id: nov.id, data: nov }));
+
+        // Ordenar por id descendente (ambos usan Date.now().toString(36))
+        items.sort((a,b) => b.id.localeCompare(a.id));
+
+        if (items.length === 0) {
             container.innerHTML = "<p style='text-align:center;color:var(--muted)'>No hay novedades todavía.</p>";
             return;
         }
+
         const tipoLabel = { error_calculo:"Error en cálculo", error_puntuacion:"Puntuación incorrecta", fallo_tecnico:"Fallo técnico", normativa:"Discrepancia normativa", otro:"Otros" };
         let html2 = "";
-        // Ordenar por fecha descendente
-        respondidas.sort((a,b) => b.id.localeCompare(a.id));
-        respondidas.forEach(inc => {
-            html2 += `<div class="novedad-card">
-                <span class="tipo-tag">${tipoLabel[inc.tipo]||inc.tipo}</span>
-                <div class="pregunta">${inc.desc}</div>
-                <div class="respuesta">${inc.respuesta}</div>
-                <div class="fecha-tag">${inc.fecha}</div>
-            </div>`;
+
+        items.forEach(item => {
+            if (item.type === "respuesta") {
+                const inc = item.data;
+                html2 += `<div class="novedad-card">
+                    <span class="tipo-tag">${tipoLabel[inc.tipo]||inc.tipo}</span>
+                    <div class="pregunta">${inc.desc}</div>
+                    <div class="respuesta">${inc.respuesta}</div>
+                    <div class="fecha-tag">${inc.fechaRespuesta || inc.fecha}</div>
+                </div>`;
+            } else {
+                const nov = item.data;
+                html2 += `<div class="novedad-card" style="border-left:4px solid var(--secondary)">
+                    <div style="font-size:.72rem;background:#dcfce7;color:var(--secondary);padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:8px;font-weight:600">Comunicado</div>
+                    <div style="font-size:1.05rem;font-weight:700;color:var(--primary);margin-bottom:8px">${nov.titulo}</div>
+                    <div style="font-size:.92rem;line-height:1.6;color:var(--text)">${nov.contenido}</div>
+                    <div class="fecha-tag">${nov.fecha}</div>
+                </div>`;
+            }
         });
+
         container.innerHTML = html2;
     } catch(e) {
         container.innerHTML = "<p style='text-align:center;color:#dc2626'>Error al cargar novedades.</p>";
@@ -1778,18 +1851,43 @@ let rankSortMode = "nota";
 let rankFilterSpec = "";
 let rankFilterVia  = "";
 
+// Deduce la vía competitiva de registros antiguos que no la tienen guardada
+function deriveVia(u) {
+    if (u.via) return u.via;
+    const esc  = u.escala  || "";
+    const proc = u.proceso || "";
+    if (esc === "oficial") {
+        if (proc === "directo_con_tit")   return "Oficiales · Directo con titulación universitaria";
+        if (proc === "directo_sin_tit")   return "Oficiales · Directo sin titulación [vía no especificada]";
+        return "Oficiales · Promo Interna [sub-vía no especificada]";
+    }
+    if (esc === "suboficial") {
+        if (proc === "directo_con_ts")    return "Suboficiales · Directo · Con TS";
+        if (proc === "directo_sin_ts")    return "Suboficiales · Directo · Sin TS [vía no especificada]";
+        if (proc === "promo_interna")     return "Suboficiales · Promo Interna [sub-vía no especificada]";
+    }
+    if (esc === "cuerpos_comunes") {
+        if (proc === "ingreso_directo")   return "CC · Ingreso Directo";
+        if (proc === "cambio_cuerpo")     return "CC · Cambio de Cuerpo/Escala";
+    }
+    return "Sin clasificar";
+}
+
 function renderTable(data) {
     const tagColor = { oficial:"tag-of", suboficial:"tag-sub", cuerpos_comunes:"tag-cc" };
     const tagLabel = { oficial:"OFICIAL", suboficial:"SUBOFICIAL", cuerpos_comunes:"CC" };
 
+    // Normalizar: añadir vía derivada a registros que no la tienen
+    const dataNorm = data.map(u => ({ ...u, _via: deriveVia(u) }));
+
     // Recopilar especialidades y vías únicas
-    const allSpecs = [...new Set(data.flatMap(u => u.specs || [u.spec]).filter(Boolean))].sort();
-    const allVias  = [...new Set(data.map(u => u.via).filter(Boolean))].sort();
+    const allSpecs = [...new Set(dataNorm.flatMap(u => u.specs || [u.spec]).filter(Boolean))].sort();
+    const allVias  = [...new Set(dataNorm.map(u => u._via).filter(Boolean))].sort();
 
     // Aplicar filtros
-    let sorted = [...data];
+    let sorted = [...dataNorm];
     if (rankFilterVia) {
-        sorted = sorted.filter(u => u.via === rankFilterVia);
+        sorted = sorted.filter(u => u._via === rankFilterVia);
     }
     if (rankFilterSpec) {
         sorted = sorted.filter(u => (u.specs || [u.spec]).includes(rankFilterSpec));
@@ -1800,7 +1898,7 @@ function renderTable(data) {
     let specOpts = `<option value="">— Todas las especialidades —</option>`;
     allSpecs.forEach(s => { specOpts += `<option value="${s}" ${s===rankFilterSpec?"selected":""}>${s}</option>`; });
     let viaOpts = `<option value="">— Todas las vías —</option>`;
-    allVias.forEach(v => { viaOpts += `<option value="${v}" ${v===rankFilterVia?"selected":""}>${v}</option>`; });
+    allVias.forEach(v => { viaOpts += `<option value="${v}" ${v===rankFilterVia?'selected':''}>${v}</option>`; });
 
     const totalMostrados = sorted.length;
     const totalGlobal    = data.length;
@@ -1815,7 +1913,8 @@ function renderTable(data) {
         </select>
         <button class="sort-btn ${!rankFilterVia&&!rankFilterSpec?'active':''}" onclick="setFiltroVia('');setFiltroSpec('')">✕ Quitar filtros</button>
     </div>
-    ${rankFilterVia || rankFilterSpec ? `<p style="font-size:.8rem;color:var(--muted);margin:4px 0 8px">Mostrando <b>${totalMostrados}</b> de ${totalGlobal} participantes</p>` : ''}`;
+    ${rankFilterVia || rankFilterSpec ? `<p style="font-size:.8rem;color:var(--muted);margin:4px 0 8px">Mostrando <b>${totalMostrados}</b> de ${totalGlobal} participantes</p>` : ''}
+    ${dataNorm.some(u => !u.via) ? `<p style="font-size:.74rem;color:var(--muted);margin:2px 0 10px"><i>* Registros anteriores sin vía detallada: se muestra la categoría deducida del proceso.</i></p>` : ''}`;
 
     if (sorted.length === 0) {
         html += `<p style="text-align:center;color:var(--muted)">No hay registros para esa especialidad todavía.</p>`;
@@ -1834,10 +1933,10 @@ function renderTable(data) {
             const isFiltered = rankFilterSpec && s === rankFilterSpec;
             return `<span style="${isFiltered?'font-weight:800;color:var(--primary)':''}">${si+1}. ${s}</span>`;
         }).join('<br>');
-        const viaHtml = u.via
-            ? `<br><span style="font-size:.72rem;background:#f1f5f9;color:var(--muted);padding:1px 6px;border-radius:10px;display:inline-block;margin-top:3px">${u.via}</span>`
-            : '';
-        const isMyVia = rankFilterVia && u.via === rankFilterVia;
+        const viaLabel = u._via || deriveVia(u);
+        const viaIsInferred = !u.via && viaLabel !== "Sin clasificar";
+        const viaHtml = `<br><span style="font-size:.72rem;background:#f1f5f9;color:var(--muted);padding:1px 6px;border-radius:10px;display:inline-block;margin-top:3px${viaIsInferred?';font-style:italic':''}">${viaLabel}${viaIsInferred?' *':''}</span>`;
+        const isMyVia = rankFilterVia && viaLabel === rankFilterVia;
         html += `<tr style="${rowStyle}${isMyVia&&!isMe?'border-left:3px solid #94a3b8;':''}">
             <td style="color:var(--muted);font-weight:${isMe?'800':'400'}">${i+1}</td>
             <td><span class="tag ${tc}">${tl}</span>${yoTag}${viaHtml}<br><small style="line-height:1.8">${specsHtml}</small></td>
