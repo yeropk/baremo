@@ -795,6 +795,7 @@
 
     <button class="btn btn-primary" style="width:100%" id="btn-save" onclick="guardarEnNube()">Publicar Nota y Ver Listado</button>
     <button class="btn btn-outline" style="width:100%;margin-top:10px" onclick="nextStep(6)">Volver a la Calculadora</button>
+
 </div>
 
         </div><!-- .card -->
@@ -1453,6 +1454,71 @@ function calcularBaremo() {
 }
 
 // ══ JSONBin ════════════════════════════════════════════════
+async function borrarMiRegistroDesdeListado() {
+    if (!currentUserHash) {
+        alert("No se puede identificar tu registro. Asegúrate de haber iniciado sesión con tu NIO/ID.");
+        return;
+    }
+    if (!confirm("¿Confirmas que quieres borrar tu registro del escalafón? Esta acción no se puede deshacer.")) return;
+
+    try {
+        const res = await fetch(API + "/registro/self", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ hash: currentUserHash })
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || "HTTP " + res.status);
+        }
+        currentUserHash = null;
+        alert("Registro borrado correctamente.");
+        // Recargar el listado
+        leerBin().then(lista => renderTable(lista)).catch(e => alert("Error al recargar: " + e.message));
+    } catch(e) {
+        alert("Error: " + e.message);
+    }
+}
+
+async function borrarMiRegistro() {
+    const idBorrar = $("delete_id") ? $("delete_id").value.trim() : "";
+    if (!idBorrar) return alert("Introduce el NIO/ID del registro que quieres borrar.");
+    if (!/^[A-Za-z0-9]+$/.test(idBorrar)) return alert("El NIO/ID solo puede contener letras y números.");
+
+    const hash = hashId(idBorrar);
+    const btn  = $("btn-delete-self");
+
+    // Verificar primero que existe ese registro
+    const lista = await leerBin().catch(() => []);
+    if (!lista.some(u => u.hash === hash)) {
+        alert("No se encontró ningún registro con ese NIO/ID. Comprueba que lo has escrito correctamente.");
+        return;
+    }
+
+    if (!confirm("¿Confirmas que quieres borrar el registro asociado a ese NIO/ID? Esta acción no se puede deshacer.")) return;
+
+    btn.disabled = true;
+    btn.textContent = "Borrando...";
+    try {
+        const res = await fetch(API + "/registro/self", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ hash })
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || "HTTP " + res.status);
+        }
+        $("delete_id").value = "";
+        alert("Registro borrado correctamente. Ahora puedes publicar tu nota con el NIO/ID correcto.");
+    } catch(e) {
+        alert("Error: " + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Borrar ese registro";
+    }
+}
+
 function hashId(str) {
     let h = 0;
     for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
@@ -1962,9 +2028,12 @@ function renderTable(data) {
         const viaIsInferred = !u.via && viaLabel !== "Sin clasificar";
         const viaHtml = `<br><span style="font-size:.72rem;background:#f1f5f9;color:var(--muted);padding:1px 6px;border-radius:10px;display:inline-block;margin-top:3px${viaIsInferred?';font-style:italic':''}">${viaLabel}${viaIsInferred?' *':''}</span>`;
         const isMyVia = rankFilterVia && viaLabel === rankFilterVia;
+        const deleteBtn = isMe
+            ? `<br><button onclick="borrarMiRegistroDesdeListado()" style="margin-top:6px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:.75rem;font-weight:600">🗑 Borrar mi registro</button>`
+            : '';
         html += `<tr style="${rowStyle}${isMyVia&&!isMe?'border-left:3px solid #94a3b8;':''}">
             <td style="color:var(--muted);font-weight:${isMe?'800':'400'}">${i+1}</td>
-            <td><span class="tag ${tc}">${tl}</span>${yoTag}${viaHtml}<br><small style="line-height:1.8">${specsHtml}</small></td>
+            <td><span class="tag ${tc}">${tl}</span>${yoTag}${viaHtml}<br><small style="line-height:1.8">${specsHtml}</small>${deleteBtn}</td>
             <td style="color:var(--primary);font-weight:800;font-size:1.1rem">${parseFloat(u.nota).toFixed(3)}</td>
         </tr>`;
     });
