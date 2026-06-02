@@ -1750,11 +1750,33 @@ function renderAdmin(data, incidencias) {
         });
     }
 
-    // Modal de respuesta (oculto)
-    html += `<div id="modal-responder" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px">
-        <div style="background:white;border-radius:16px;padding:28px;max-width:500px;width:100%">
+    // Modal de respuesta con censura
+    html += `<div id="modal-responder" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;align-items:center;justify-content:center;padding:20px">
+        <div style="background:white;border-radius:16px;padding:28px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto">
             <h3 style="margin-top:0;color:var(--primary)">Responder a la incidencia</h3>
-            <textarea id="respuesta-texto" rows="5" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box;font-size:.9rem;font-family:inherit" placeholder="Escribe tu respuesta..."></textarea>
+
+            <label style="font-weight:600;font-size:.85rem;display:block;margin-bottom:4px">
+                Texto público del reporte:
+                <span style="font-weight:400;color:var(--muted)">(selecciona una palabra y pulsa ████ para censurarla)</span>
+            </label>
+            <div style="position:relative;margin-bottom:6px">
+                <textarea id="texto-publico" rows="4"
+                    style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box;font-size:.9rem;font-family:inherit;background:#fafafa"
+                    placeholder="Texto del reporte que verá el público..."></textarea>
+                <button onclick="censurarSeleccion()" title="Censurar texto seleccionado"
+                    style="position:absolute;bottom:8px;right:8px;background:#1e293b;color:white;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:.8rem;font-weight:700;letter-spacing:1px">
+                    ████ Censurar
+                </button>
+            </div>
+            <p style="font-size:.75rem;color:var(--muted);margin-bottom:14px">
+                Vista previa: "<span id="preview-texto" style="font-style:italic"></span>"
+            </p>
+
+            <label style="font-weight:600;font-size:.85rem;display:block;margin-bottom:4px">Tu respuesta:</label>
+            <textarea id="respuesta-texto" rows="4"
+                style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box;font-size:.9rem;font-family:inherit"
+                placeholder="Escribe tu respuesta..."></textarea>
+
             <div style="display:flex;gap:10px;margin-top:14px">
                 <button onclick="cerrarResponder()" style="flex:1;padding:12px;background:#e2e8f0;border:none;border-radius:8px;cursor:pointer;font-weight:bold">Cancelar</button>
                 <button onclick="enviarRespuesta()" style="flex:1;padding:12px;background:var(--secondary);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:bold">Publicar respuesta</button>
@@ -1792,10 +1814,41 @@ function abrirResponder(id) {
     _incidenciaActual = id;
     const modal = $("modal-responder");
     if (!modal) return;
-    // Pre-rellenar si ya tiene respuesta
-    const container = $("tabla-admin");
-    $("respuesta-texto").value = "";
+
+    // Buscar la incidencia actual para pre-rellenar el texto
+    leerBinCompleto().then(({ incidencias }) => {
+        const inc = (incidencias || []).find(i => i.id === id);
+        const tp = $("texto-publico");
+        const rt = $("respuesta-texto");
+        const pv = $("preview-texto");
+        if (tp) tp.value = inc ? inc.textoPublico || inc.desc : "";
+        if (rt) rt.value = inc ? inc.respuesta || "" : "";
+        if (pv) pv.textContent = tp ? tp.value : "";
+        // Actualizar preview en tiempo real
+        if (tp) tp.oninput = () => { if (pv) pv.textContent = tp.value; };
+    });
+
     modal.style.display = "flex";
+}
+
+function censurarSeleccion() {
+    const ta = $("texto-publico");
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end   = ta.selectionEnd;
+    if (start === end) {
+        alert("Selecciona primero el texto que quieres censurar.");
+        return;
+    }
+    const seleccionado = ta.value.substring(start, end);
+    // Reemplazar cada carácter visible por █ (espacios se conservan)
+    const censurado = seleccionado.replace(/\S/g, "█");
+    ta.value = ta.value.substring(0, start) + censurado + ta.value.substring(end);
+    const pv = $("preview-texto");
+    if (pv) pv.textContent = ta.value;
+    // Restaurar el foco y selección
+    ta.focus();
+    ta.setSelectionRange(start, start + censurado.length);
 }
 function cerrarResponder() {
     const modal = $("modal-responder");
@@ -1803,14 +1856,15 @@ function cerrarResponder() {
     _incidenciaActual = null;
 }
 async function enviarRespuesta() {
-    const texto = $("respuesta-texto").value.trim();
+    const texto      = $("respuesta-texto") ? $("respuesta-texto").value.trim() : "";
+    const textoPubl  = $("texto-publico")   ? $("texto-publico").value.trim()   : "";
     if (!texto) return alert("Escribe una respuesta.");
     if (!_incidenciaActual) return;
     try {
         const res = await fetch(API + "/incidencia/" + _incidenciaActual + "/respuesta", {
             method: "POST",
             headers: { "Content-Type": "application/json", "X-Admin-Key": adminPin },
-            body: JSON.stringify({ respuesta: texto })
+            body: JSON.stringify({ respuesta: texto, textoPublico: textoPubl })
         });
         if (!res.ok) throw new Error("HTTP " + res.status);
         cerrarResponder();
@@ -1896,9 +1950,11 @@ async function cargarNovedades() {
             html2 += `<h3 style="color:var(--primary);border-bottom:2px solid var(--primary);padding-bottom:8px;margin:${novedades.length>0?'28px':'0px'} 0 16px">💬 Respuestas a reportes</h3>`;
             const sorted = [...respondidas].sort((a,b) => b.id.localeCompare(a.id));
             sorted.forEach(inc => {
+                // Usar textoPublico (posiblemente censurado) si existe, si no el original
+                const textoMostrar = inc.textoPublico || inc.desc;
                 html2 += `<div class="novedad-card">
                     <span class="tipo-tag">${tipoLabel[inc.tipo]||inc.tipo}</span>
-                    <div class="pregunta">${inc.desc}</div>
+                    <div class="pregunta">${textoMostrar}</div>
                     <div class="respuesta">${inc.respuesta}</div>
                 </div>`;
             });
