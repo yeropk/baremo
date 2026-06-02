@@ -784,7 +784,7 @@
     <hr style="border:1px solid var(--border);margin:25px 0">
     <h3 style="margin-bottom:10px">Únete al Escalafón Global</h3>
     <p style="font-size:.85rem;color:var(--muted);margin-bottom:15px">Guarda tu nota de forma anónima para ver en qué posición quedas. Tu NIO/ID no se mostrará públicamente.</p>
-    <div class="input-group"><label>ID Privado (NIO/ID):</label><input type="text" id="u_id" placeholder="12345678A"></div>
+    <div class="input-group"><label>ID Privado (NIO):</label><input type="text" id="u_id" placeholder="12345678A"></div>
 
     <div class="input-group">
         <label>Especialidades a las que optas (por orden de preferencia):</label>
@@ -1774,49 +1774,63 @@ async function cargarNovedades() {
     const container = $("novedades-content");
     container.innerHTML = "<p style='text-align:center;color:var(--muted)'>Cargando...</p>";
     try {
-        const { incidencias, novedades } = await leerBinCompleto();
-        const respondidas = (incidencias || []).filter(i => i.respuesta);
-        const custom = novedades || [];
+        // Forzar lectura fresca del Worker (sin caché)
+        const res = await fetch(API + "/datos", { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const rec = await res.json();
 
-        // Unificar en un solo array con tipo para ordenar por fecha
-        const items = [];
-        respondidas.forEach(inc => items.push({ type: "respuesta", id: inc.id, data: inc }));
-        custom.forEach(nov => items.push({ type: "novedad", id: nov.id, data: nov }));
+        const incidencias = rec.incidencias || [];
+        const novedades   = rec.novedades   || [];
+        const respondidas = incidencias.filter(i => i.respuesta);
 
-        // Ordenar por id descendente (ambos usan Date.now().toString(36))
-        items.sort((a,b) => b.id.localeCompare(a.id));
+        const tipoLabel = {
+            error_calculo: "Error en cálculo",
+            error_puntuacion: "Puntuación incorrecta",
+            fallo_tecnico: "Fallo técnico",
+            normativa: "Discrepancia normativa",
+            otro: "Otros"
+        };
 
-        if (items.length === 0) {
+        let html2 = "";
+        const nada = novedades.length === 0 && respondidas.length === 0;
+
+        if (nada) {
             container.innerHTML = "<p style='text-align:center;color:var(--muted)'>No hay novedades todavía.</p>";
             return;
         }
 
-        const tipoLabel = { error_calculo:"Error en cálculo", error_puntuacion:"Puntuación incorrecta", fallo_tecnico:"Fallo técnico", normativa:"Discrepancia normativa", otro:"Otros" };
-        let html2 = "";
-
-        items.forEach(item => {
-            if (item.type === "respuesta") {
-                const inc = item.data;
-                html2 += `<div class="novedad-card">
-                    <span class="tipo-tag">${tipoLabel[inc.tipo]||inc.tipo}</span>
-                    <div class="pregunta">${inc.desc}</div>
-                    <div class="respuesta">${inc.respuesta}</div>
-                    <div class="fecha-tag">${inc.fechaRespuesta || inc.fecha}</div>
-                </div>`;
-            } else {
-                const nov = item.data;
+        // ── Sección 1: Comunicados del admin ──────────────────
+        if (novedades.length > 0) {
+            html2 += `<h3 style="color:var(--secondary);border-bottom:2px solid var(--secondary);padding-bottom:8px;margin-bottom:16px">📣 Comunicados</h3>`;
+            const sorted = [...novedades].sort((a,b) => b.id.localeCompare(a.id));
+            sorted.forEach(nov => {
                 html2 += `<div class="novedad-card" style="border-left:4px solid var(--secondary)">
                     <div style="font-size:.72rem;background:#dcfce7;color:var(--secondary);padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:8px;font-weight:600">Comunicado</div>
                     <div style="font-size:1.05rem;font-weight:700;color:var(--primary);margin-bottom:8px">${nov.titulo}</div>
                     <div style="font-size:.92rem;line-height:1.6;color:var(--text)">${nov.contenido}</div>
                     <div class="fecha-tag">${nov.fecha}</div>
                 </div>`;
-            }
-        });
+            });
+        }
+
+        // ── Sección 2: Respuestas a incidencias ───────────────
+        if (respondidas.length > 0) {
+            html2 += `<h3 style="color:var(--primary);border-bottom:2px solid var(--primary);padding-bottom:8px;margin:${novedades.length>0?'28px':'0px'} 0 16px">💬 Respuestas a reportes</h3>`;
+            const sorted = [...respondidas].sort((a,b) => b.id.localeCompare(a.id));
+            sorted.forEach(inc => {
+                html2 += `<div class="novedad-card">
+                    <span class="tipo-tag">${tipoLabel[inc.tipo]||inc.tipo}</span>
+                    <div class="pregunta">${inc.desc}</div>
+                    <div class="respuesta">${inc.respuesta}</div>
+                    <div class="fecha-tag">${inc.fechaRespuesta || inc.fecha}</div>
+                </div>`;
+            });
+        }
 
         container.innerHTML = html2;
     } catch(e) {
-        container.innerHTML = "<p style='text-align:center;color:#dc2626'>Error al cargar novedades.</p>";
+        container.innerHTML = `<p style='text-align:center;color:#dc2626'>Error al cargar novedades: ${e.message}</p>`;
+        console.error(e);
     }
 }
 
