@@ -100,9 +100,9 @@
             <div class="instruc-item"><div class="instruc-num">1</div><div><b>Selecciona tu escala y proceso</b> en el Paso 1. Si eres Suboficial, elige además el tipo de proceso (Promoción Interna, Ingreso Directo con o sin TS), ya que cada uno tiene una baremación diferente.</div></div>
             <div class="instruc-item"><div class="instruc-num">2</div><div><b>Rellena cada paso con tus datos reales.</b> Para el tiempo de servicios, introduce solo los meses completos. Los días que no completen un mes no se computan.</div></div>
             <div class="instruc-item"><div class="instruc-num">3</div><div><b>IPEC (Informes de Calificación):</b> introduce la nota global de tus dos últimos informes disponibles. Si tu informe usa letras, la equivalencia es: A=9,5 · B=8,5 · C=7,5 · D=6,5 · E=4.</div></div>
-            <div class="instruc-item"><div class="instruc-num">4</div><div><b>Al publicar tu nota, tu identificación es confidencial.</b> El NIO/ID que introduzcas se convierte en un código anónimo antes de guardarse; nadie podrá asociar tu puntuación con tu identidad.</div></div>
-            <div class="instruc-item"><div class="instruc-num">5</div><div><b>Para rectificar errores</b>, simplemente vuelve a calcular y publica con el mismo ID. Tu entrada anterior se sustituirá automáticamente por la nueva.</div></div>
-            <div class="instruc-item"><div class="instruc-num">6</div><div><b>Para ver el escalafón global</b> debes haber publicado tu nota previamente. Accede con el mismo ID con el que publicaste.</div></div>
+            <div class="instruc-item"><div class="instruc-num">4</div><div><b>Al publicar tu nota, tu identificación es confidencial.</b> El NIO/ID o ID que introduzcas se convierte en un código anónimo antes de guardarse; nadie podrá asociar tu puntuación con tu identidad.</div></div>
+            <div class="instruc-item"><div class="instruc-num">5</div><div><b>Para rectificar errores</b>, simplemente vuelve a calcular y publica con el mismo NIO/ID. Tu entrada anterior se sustituirá automáticamente por la nueva.</div></div>
+            <div class="instruc-item"><div class="instruc-num">6</div><div><b>Para ver el escalafón global</b> debes haber publicado tu nota previamente. Accede con el mismo NIO/ID con el que publicaste.</div></div>
             <div class="instruc-item"><div class="instruc-num">7</div><div><b>Si detectas un error en la baremación</b>, usa el botón <span style="background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:4px;font-size:.85rem">⚠️ Reportar Incidencia</span> para comunicarlo. Los administradores lo revisarán.</div></div>
             <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px;margin-top:10px;font-size:.82rem;color:#166534;">
                 <b>ℹ️ Nota legal:</b> Esta herramienta es de uso orientativo. La baremación oficial y definitiva corresponde en todo caso a los órganos competentes del Ministerio de Defensa.
@@ -784,7 +784,7 @@
     <hr style="border:1px solid var(--border);margin:25px 0">
     <h3 style="margin-bottom:10px">Únete al Escalafón Global</h3>
     <p style="font-size:.85rem;color:var(--muted);margin-bottom:15px">Guarda tu nota de forma anónima para ver en qué posición quedas. Tu NIO/ID no se mostrará públicamente.</p>
-    <div class="input-group"><label>ID Privado (NIO):</label><input type="text" id="u_id" placeholder="12345678A"></div>
+    <div class="input-group"><label>NIO/ID:</label><input type="text" id="u_id" placeholder="Ej: 12345678A" pattern="[A-Za-z0-9]+" oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'')"></div>
 
     <div class="input-group">
         <label>Especialidades a las que optas (por orden de preferencia):</label>
@@ -806,8 +806,8 @@
 
             <!-- Login -->
             <div id="rank-lock">
-                <p style="font-size:.9rem;color:var(--muted)">Introduce tu ID Privado para acceder al listado.</p>
-                <div class="input-group" style="margin-top:15px"><input type="text" id="unlock-id" placeholder="Tu NIO/ID Privado"></div>
+                <p style="font-size:.9rem;color:var(--muted)">Introduce tu NIO/ID para acceder al listado.</p>
+                <div class="input-group" style="margin-top:15px"><input type="text" id="unlock-id" placeholder="Tu NIO/ID" pattern="[A-Za-z0-9]+" oninput="this.value=this.value.replace(/[^A-Za-z0-9]/g,'')"></div>
                 <button class="btn btn-primary" style="width:100%" onclick="cargarRanking()">Entrar al Listado</button>
             </div>
 
@@ -1516,7 +1516,7 @@ async function guardarEnNube() {
     const esc   = getEscala();
     const proc  = getProceso();
     const procCC = getProcesoCc();
-    if (!id) return alert("Introduce tu ID privado.");
+    if (!id) return alert("Introduce tu NIO/ID.");
     if (specs.length === 0) return alert("Selecciona al menos una especialidad.");
     const spec = specs[0]; // primera preferencia (para compatibilidad)
     const btn = $("btn-save");
@@ -1539,7 +1539,7 @@ async function guardarEnNube() {
 async function cargarRanking() {
     const unlockId  = $("unlock-id").value.trim();
     const container = $("tabla-html");
-    if (!unlockId) return alert("Escribe tu ID.");
+    if (!unlockId) return alert("Escribe tu NIO/ID.");
 
     // Acceso admin: el Worker valida el PIN — el cliente nunca sabe cuál es
     const verifyRes = await fetch(API + "/admin/verify", {
