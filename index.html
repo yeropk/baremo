@@ -1821,7 +1821,6 @@ async function cargarNovedades() {
                     <div style="font-size:.72rem;background:#dcfce7;color:var(--secondary);padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:8px;font-weight:600">Comunicado</div>
                     <div style="font-size:1.05rem;font-weight:700;color:var(--primary);margin-bottom:8px">${nov.titulo}</div>
                     <div style="font-size:.92rem;line-height:1.6;color:var(--text)">${nov.contenido}</div>
-                    <div class="fecha-tag">${nov.fecha}</div>
                 </div>`;
             });
         }
@@ -1835,7 +1834,6 @@ async function cargarNovedades() {
                     <span class="tipo-tag">${tipoLabel[inc.tipo]||inc.tipo}</span>
                     <div class="pregunta">${inc.desc}</div>
                     <div class="respuesta">${inc.respuesta}</div>
-                    <div class="fecha-tag">${inc.fechaRespuesta || inc.fecha}</div>
                 </div>`;
             });
         }
