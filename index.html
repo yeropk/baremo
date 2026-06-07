@@ -865,6 +865,17 @@ const show = id => $(id).style.display = "block";
 const hide = id => $(id).style.display = "none";
 const val = id => parseFloat($(id).value) || 0;
 
+// Escapa HTML para prevenir XSS al insertar texto de usuarios con innerHTML
+function esc(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
 function showView(viewId, event) {
     document.querySelectorAll(".view").forEach(v => v.style.display = "none");
     $(viewId).style.display = "block";
@@ -1710,7 +1721,7 @@ function renderAdmin(data, incidencias) {
             const proc = u.proceso ? `<br><small style="color:var(--muted)">${u.proceso.replace(/_/g," ")}</small>` : "";
             html += `<tr>
                 <td style="color:var(--muted)">${i+1}</td>
-                <td><span class="tag ${tc}">${tl}</span> <b>${u.spec}</b>${proc}</td>
+                <td><span class="tag ${tc}">${tl}</span> <b>${esc(u.spec)}</b>${proc}</td>
                 <td style="color:var(--primary);font-weight:800">${parseFloat(u.nota).toFixed(3)}</td>
                 <td><button onclick="borrarRegistro('${u.hash}')" style="background:#dc2626;color:white;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:.85rem">x</button></td>
             </tr>`;
@@ -1736,8 +1747,8 @@ function renderAdmin(data, incidencias) {
                     <div style="flex:1">
                         <span style="font-size:.72rem;background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:4px">${tipoLabel[inc.tipo]||inc.tipo}</span>
                         <span style="font-size:.72rem;color:var(--muted);margin-left:6px">${inc.fecha}</span>
-                        <p style="margin:6px 0 0;font-size:.88rem">${inc.desc}</p>
-                        ${yaRespondida ? `<div style="margin-top:8px;padding:8px;background:#dcfce7;border-radius:6px;font-size:.85rem"><b style="color:var(--secondary)">↳ Respuesta:</b> ${inc.respuesta}</div>` : ''}
+                        <p style="margin:6px 0 0;font-size:.88rem">${esc(inc.desc)}</p>
+                        ${yaRespondida ? `<div style="margin-top:8px;padding:8px;background:#dcfce7;border-radius:6px;font-size:.85rem"><b style="color:var(--secondary)">↳ Respuesta:</b> ${esc(inc.respuesta)}</div>` : ''}
                     </div>
                     <div style="display:flex;gap:6px;flex-shrink:0">
                         <button onclick="abrirResponder('${inc.id}')" style="background:var(--secondary);color:white;border:none;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:.8rem">
@@ -1794,8 +1805,8 @@ function renderAdmin(data, incidencias) {
             html += `<div style="border:1px solid #86efac;border-radius:8px;padding:12px;margin-bottom:10px;background:#f0fdf4">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
                     <div style="flex:1">
-                        <b style="color:var(--primary);font-size:.95rem">${nov.titulo}</b>
-                        <p style="margin:6px 0 0;font-size:.88rem">${nov.contenido}</p>
+                        <b style="color:var(--primary);font-size:.95rem">${esc(nov.titulo)}</b>
+                        <p style="margin:6px 0 0;font-size:.88rem">${esc(nov.contenido)}</p>
                         <span style="font-size:.72rem;color:var(--muted)">${nov.fecha}</span>
                     </div>
                     <button onclick="borrarNovedad('${nov.id}')" style="background:#6b7280;color:white;border:none;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:.8rem;flex-shrink:0">✕</button>
@@ -1939,8 +1950,8 @@ async function cargarNovedades() {
             sorted.forEach(nov => {
                 html2 += `<div class="novedad-card" style="border-left:4px solid var(--secondary)">
                     <div style="font-size:.72rem;background:#dcfce7;color:var(--secondary);padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:8px;font-weight:600">Comunicado</div>
-                    <div style="font-size:1.05rem;font-weight:700;color:var(--primary);margin-bottom:8px">${nov.titulo}</div>
-                    <div style="font-size:.92rem;line-height:1.6;color:var(--text)">${nov.contenido}</div>
+                    <div style="font-size:1.05rem;font-weight:700;color:var(--primary);margin-bottom:8px">${esc(nov.titulo)}</div>
+                    <div style="font-size:.92rem;line-height:1.6;color:var(--text)">${esc(nov.contenido)}</div>
                 </div>`;
             });
         }
@@ -1953,9 +1964,9 @@ async function cargarNovedades() {
                 // Usar textoPublico (posiblemente censurado) si existe, si no el original
                 const textoMostrar = inc.textoPublico || inc.desc;
                 html2 += `<div class="novedad-card">
-                    <span class="tipo-tag">${tipoLabel[inc.tipo]||inc.tipo}</span>
-                    <div class="pregunta">${textoMostrar}</div>
-                    <div class="respuesta">${inc.respuesta}</div>
+                    <span class="tipo-tag">${esc(tipoLabel[inc.tipo]||inc.tipo)}</span>
+                    <div class="pregunta">${esc(textoMostrar)}</div>
+                    <div class="respuesta">${esc(inc.respuesta)}</div>
                 </div>`;
             });
         }
@@ -2043,9 +2054,9 @@ function renderTable(data) {
 
     // Barra de filtros
     let specOpts = `<option value="">— Todas las especialidades —</option>`;
-    allSpecs.forEach(s => { specOpts += `<option value="${s}" ${s===rankFilterSpec?"selected":""}>${s}</option>`; });
+    allSpecs.forEach(s => { specOpts += `<option value="${esc(s)}" ${s===rankFilterSpec?"selected":""}>${esc(s)}</option>`; });
     let viaOpts = `<option value="">— Todas las vías —</option>`;
-    allVias.forEach(v => { viaOpts += `<option value="${v}" ${v===rankFilterVia?'selected':''}>${v}</option>`; });
+    allVias.forEach(v => { viaOpts += `<option value="${esc(v)}" ${v===rankFilterVia?'selected':''}>${esc(v)}</option>`; });
 
     const totalMostrados = sorted.length;
     const totalGlobal    = data.length;
@@ -2078,11 +2089,11 @@ function renderTable(data) {
         const yoTag = isMe ? ' <span style="background:var(--secondary);color:white;padding:1px 7px;border-radius:10px;font-size:.7rem;font-weight:700;margin-left:4px">TÚ</span>' : '';
         const specsHtml = specList.map((s,si) => {
             const isFiltered = rankFilterSpec && s === rankFilterSpec;
-            return `<span style="${isFiltered?'font-weight:800;color:var(--primary)':''}">${si+1}. ${s}</span>`;
+            return `<span style="${isFiltered?'font-weight:800;color:var(--primary)':''}">${si+1}. ${esc(s)}</span>`;
         }).join('<br>');
         const viaLabel = u._via || deriveVia(u);
         const viaIsInferred = !u.via && viaLabel !== "Sin clasificar";
-        const viaHtml = `<br><span style="font-size:.72rem;background:#f1f5f9;color:var(--muted);padding:1px 6px;border-radius:10px;display:inline-block;margin-top:3px${viaIsInferred?';font-style:italic':''}">${viaLabel}${viaIsInferred?' *':''}</span>`;
+        const viaHtml = `<br><span style="font-size:.72rem;background:#f1f5f9;color:var(--muted);padding:1px 6px;border-radius:10px;display:inline-block;margin-top:3px${viaIsInferred?';font-style:italic':''}">${esc(viaLabel)}${viaIsInferred?' *':''}</span>`;
         const isMyVia = rankFilterVia && viaLabel === rankFilterVia;
         const deleteBtn = isMe
             ? `<br><button onclick="borrarMiRegistroDesdeListado()" style="margin-top:6px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:.75rem;font-weight:600">🗑 Borrar mi registro</button>`
@@ -2145,7 +2156,8 @@ const ESPECIALIDADES = {
             "AyE — General/Defensa y Control Aeroespacial (Con exigencia)",
             "AyE — General/Defensa y Control Aeroespacial (Sin exigencia con créditos)",
             "AyE — General/Vuelo V1N (Con exigencia)",
-            "AyE — General/Ciberespacio (Con exigencia)"
+            "AyE — General/Ciberespacio (Con exigencia)",
+            "AyE — General/Ciberespacio MCCE (Mando Conjunto del Ciberespacio)"
         ]
     },
     suboficial: {
@@ -2165,6 +2177,7 @@ const ESPECIALIDADES = {
             "AyE — Mantenimiento Aeronáutico",
             "AyE — Mantenimiento Electrónico",
             "AyE — Sistemas de Información, Comunicaciones y Ciberdefensa",
+            "AyE — Ciberdefensa MCCE (Mando Conjunto del Ciberespacio)",
             "AyE — Control Aéreo",
             "AyE — Administración"
         ],
@@ -2184,6 +2197,7 @@ const ESPECIALIDADES = {
             "AyE — Mantenimiento Aeronáutico",
             "AyE — Mantenimiento Electrónico",
             "AyE — Sistemas de Información, Comunicaciones y Ciberdefensa",
+            "AyE — Ciberdefensa MCCE (Mando Conjunto del Ciberespacio)",
             "AyE — Control Aéreo",
             "AyE — Administración"
         ],
@@ -2203,6 +2217,7 @@ const ESPECIALIDADES = {
             "AyE — Mantenimiento Aeronáutico",
             "AyE — Mantenimiento Electrónico",
             "AyE — Sistemas de Información, Comunicaciones y Ciberdefensa",
+            "AyE — Ciberdefensa MCCE (Mando Conjunto del Ciberespacio)",
             "AyE — Control Aéreo",
             "AyE — Administración"
         ]
