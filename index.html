@@ -158,24 +158,24 @@
     <div class="input-group" id="bloque_proceso_of" style="display:none;">
         <label>Proceso (Oficiales):</label>
         <select id="proceso_of" onchange="onEscalaChange()">
-            <option value="promo_interna">Promoción Interna (Anexo III — BOE 2024)</option>
-            <option value="directo_con_tit">Ingreso Directo con exigencia de titulación (Anexo II)</option>
-            <option value="directo_sin_tit">Ingreso Directo sin exigencia de titulación (Anexo I)</option>
+            <option value="promo_interna">Promoción Interna (Anexo III — Orden DEF/279/2024)</option>
+            <option value="directo_con_tit">Ingreso Directo con exigencia de titulación (Anexo II — Orden DEF/279/2024)</option>
+            <option value="directo_sin_tit">Ingreso Directo sin exigencia de titulación (Anexo I — Orden DEF/279/2024)</option>
         </select>
     </div>
     <div class="input-group" id="bloque_proceso_sub" style="display:none;">
         <label>Proceso (Suboficiales):</label>
         <select id="proceso_sub" onchange="onEscalaChange()">
-            <option value="promo_interna">Promoción Interna (Anexo III — BOE 2024)</option>
-            <option value="directo_sin_ts">Ingreso Directo sin exigencia de Técnico Superior (Anexo I)</option>
-            <option value="directo_con_ts">Ingreso Directo con exigencia de Técnico Superior (Anexo II)</option>
+            <option value="promo_interna">Promoción Interna (Anexo III — Orden DEF/278/2024)</option>
+            <option value="directo_sin_ts">Ingreso Directo sin exigencia de Técnico Superior (Anexo I — Orden DEF/278/2024)</option>
+            <option value="directo_con_ts">Ingreso Directo con exigencia de Técnico Superior (Anexo II — Orden DEF/278/2024)</option>
         </select>
     </div>
     <div class="input-group" id="bloque_proceso_cc" style="display:none;">
         <label>Proceso (Cuerpos Comunes):</label>
         <select id="proceso_cc" onchange="onEscalaChange()">
-            <option value="cambio_cuerpo">Cambio de Cuerpo o Escala (Anexo II — BOE 2011)</option>
-            <option value="ingreso_directo">Ingreso Directo (Anexo I — BOE 2011)</option>
+            <option value="cambio_cuerpo">Cambio de Cuerpo o Escala (Anexo II — Orden DEF/2454/2011)</option>
+            <option value="ingreso_directo">Ingreso Directo (Anexo I — Orden DEF/2454/2011)</option>
         </select>
     </div>
     <div id="resumen_proceso" class="info-box" style="margin-top:10px;"></div>
@@ -210,6 +210,11 @@
     </div>
     <div id="info_t_cc_dir" class="info-box" style="display:none;">
         <b>CC — Ingreso Directo:</b> Militar carrera/complemento/Tropa: 0,1 pts/mes (máx. 3 pts). Reservista: 0,02/mes (máx. 1,2 pts). <b>Tope: 3 pts. No se valoran misiones.</b>
+    </div>
+
+    <div id="banner_omitidos" class="warn-box" style="display:none;border-left-color:#0369a1;background:#eff6ff">
+        <b>ℹ️ Apartados no aplicables en este proceso</b><br>
+        <span id="banner_omitidos_texto"></span>
     </div>
 
     <div class="grid-2">
@@ -417,29 +422,56 @@
     <!-- ── OFICIALES — Promoción Interna (Anexo III) ── -->
     <div id="vma_of_promo">
         <div class="info-box">
-            <b>Oficiales — Promo Interna (Anexo III):</b> Nota (5–10) × 2 → 10–20 pts. Máster: 2 pts. Doctor: 2 pts. VMA máx.: <b>32 pts</b> (con exigencia) / <b>20 pts</b> (sin exigencia con créditos) / <b>12 pts</b> (sin exigencia).
+            <b>Oficiales — Promo Interna (Anexo III):</b> El cálculo de méritos académicos depende del tipo de proceso. VMA máx.: <b>32 pts</b> (con exigencia) / <b>20 pts</b> (sin exigencia con créditos) / <b>12 pts</b> (sin exigencia). Idiomas (máx. 8 pts) se valoran en el siguiente paso.
         </div>
         <div class="input-group">
-            <label>Tipo de proceso VMA:</label>
-            <select id="of_promo_tipo_vma">
+            <label>Tipo de proceso:</label>
+            <select id="of_promo_tipo_vma" onchange="toggleOfPromoVma()">
                 <option value="con_exig">Con exigencia de titulación universitaria previa</option>
                 <option value="sin_exig_cred">Sin exigencia con créditos adquiridos</option>
                 <option value="sin_exig">Sin exigencia de titulación universitaria previa</option>
             </select>
         </div>
-        <div class="input-group">
-            <label>Nota Media Expediente Universitario (5–10):</label>
-            <small>Si es proceso con exigencia: se multiplica × 2 (10–20 pts). Si no tienes titulación deja en 0.</small>
-            <input type="number" id="nota_tit_of" step="0.01" value="0" min="0" max="10">
-        </div>
-        <div class="grid-2">
+
+        <!-- CON exigencia: título exigido + máster + doctor -->
+        <div id="of_promo_conexig">
             <div class="input-group">
-                <label>Título de Máster Oficial:</label><small>2 pts</small>
-                <select id="master_of"><option value="0">No</option><option value="1">Sí</option></select>
+                <label>Nota Media Expediente del título exigido (5–10):</label>
+                <small>Se multiplica × 2 → entre 10 y 20 pts.</small>
+                <input type="number" id="nota_tit_of" step="0.01" value="0" min="0" max="10">
+            </div>
+            <div class="grid-2">
+                <div class="input-group">
+                    <label>Título de Máster:</label><small>2 pts (o equivalencia MECES 3)</small>
+                    <select id="master_of"><option value="0">No</option><option value="1">Sí</option></select>
+                </div>
+                <div class="input-group">
+                    <label>Título de Doctor:</label><small>2 pts</small>
+                    <select id="doctor_of"><option value="0">No</option><option value="1">Sí</option></select>
+                </div>
+            </div>
+        </div>
+
+        <!-- SIN exigencia CON créditos: ECTS -->
+        <div id="of_promo_creditos" style="display:none;">
+            <div class="input-group">
+                <label>Puntuación por créditos ECTS adquiridos (1,8–12):</label>
+                <small>0,050/ECTS matrícula · 0,040/ECTS sobresaliente · 0,025/ECTS notable · 0,010/ECTS aprobado. Introduce el total ya calculado.</small>
+                <input type="number" id="of_creditos_ects" step="0.01" value="0" min="0" max="12">
+            </div>
+        </div>
+
+        <!-- SIN exigencia (sin créditos): acceso universitario + título -->
+        <div id="of_promo_sinexig" style="display:none;">
+            <div class="input-group">
+                <label>Acceso a enseñanzas universitarias (1–2 pts):</label>
+                <small>Calificación de la prueba de acceso (EvAU/mayores 25/credencial) dividida por 5. Rango: 1–2 pts.</small>
+                <input type="number" id="of_acceso_univ" step="0.01" value="0" min="0" max="2">
             </div>
             <div class="input-group">
-                <label>Título de Doctor:</label><small>2 pts</small>
-                <select id="doctor_of"><option value="0">No</option><option value="1">Sí</option></select>
+                <label>¿Tienes un título universitario (graduado, diplomado, ingeniero...)?</label>
+                <small>2 pts (cualquier título oficial).</small>
+                <select id="of_titulo_plano"><option value="0">No</option><option value="2">Sí (2 pts)</option></select>
             </div>
         </div>
     </div>
@@ -546,7 +578,7 @@
     <!-- ── CUERPOS COMUNES — Cambio de cuerpo ── -->
     <div id="vma_cc" style="display:none;">
         <div class="info-box">
-            <b>CC — Cambio de Cuerpo/Escala (BOE 2011, Anexo II):</b> Nota expediente (5–10) × 2. Máster: 5 pts. Doctor: 7 pts. <b>VMA máx.: 37 pts.</b>
+            <b>CC — Cambio de Cuerpo/Escala (Anexo II, Orden DEF/2454/2011):</b> Nota expediente (5–10) × 2. Máster: 5 pts. Doctor: 7 pts. <b>VMA máx.: 37 pts.</b>
         </div>
         <div class="input-group">
             <label>Nota Media Expediente Universitario (5–10):</label>
@@ -567,7 +599,7 @@
     <!-- ── CUERPOS COMUNES — Ingreso Directo ── -->
     <div id="vma_cc_dir" style="display:none;">
         <div class="info-box">
-            <b>CC — Ingreso Directo (BOE 2011, Anexo I):</b> Nota expediente (5–10) × 1,5 = entre 7,5 y 15 pts. Máster: 3 pts. Doctor: 5 pts. Inglés: avanzado/C1 = 3 pts, intermedio = 1 pt. <b>VMA máx.: ~26 pts. Total máx.: 29 pts.</b>
+            <b>CC — Ingreso Directo (Anexo I, Orden DEF/2454/2011):</b> Nota expediente (5–10) × 1,5 = entre 7,5 y 15 pts. Máster: 3 pts. Doctor: 5 pts. Inglés: avanzado/C1 = 3 pts, intermedio = 1 pt. <b>VMA máx.: ~26 pts. Total máx.: 29 pts.</b>
         </div>
         <div class="input-group">
             <label>Nota Media Expediente Universitario (5–10):</label>
@@ -866,7 +898,7 @@ const hide = id => $(id).style.display = "none";
 const val = id => parseFloat($(id).value) || 0;
 
 // Escapa HTML para prevenir XSS al insertar texto de usuarios con innerHTML
-function esc(str) {
+function escHtml(str) {
     if (str === null || str === undefined) return "";
     return String(str)
         .replace(/&/g, "&amp;")
@@ -906,14 +938,14 @@ function actualizarResumenProceso() {
     const proc = getProceso();
     const procCC = getProcesoCc();
     const resumenes = {
-        of_promo_interna:   "Oficiales — Promo Interna (Anexo III — BOE 2024): VMM máx. 43 pts · VMA máx. 32 pts · PFC = VMM/2 + VMA",
-        of_directo_con_tit: "Oficiales — Ingreso Directo con titulación (Anexo II): VMM máx. 3 pts · VMA máx. 22 pts · Total máx. 25 pts · PFC = VMM + VMA",
-        of_directo_sin_tit: "Oficiales — Ingreso Directo sin titulación (Anexo I): Fórmula EvAU/CACRED + VMM (máx. 0,5 pts)",
-        cc_cambio_cuerpo: "CC — Cambio de Cuerpo/Escala (BOE 2011 Anexo II): VMM máx. 48 pts · VMA máx. 37 pts · Total máx. 85 pts · PFC = VMM + VMA",
-        cc_ingreso_directo: "CC — Ingreso Directo (BOE 2011 Anexo I): VMM máx. 3 pts · VMA máx. ~26 pts · Total máx. 29 pts · PFC = VMM + VMA",
-        sub_promo_interna: "Suboficiales — Promoción Interna (BOE 2024 Anexo III): VMM máx. 57 pts · VMA máx. 35/21 pts · PFC = VMM + VMA",
-        sub_directo_sin_ts: "Suboficiales — Ingreso Directo sin TS (BOE 2024 Anexo I): VMM máx. 0,5 pts · Total máx. 13,5 pts",
-        sub_directo_con_ts: "Suboficiales — Ingreso Directo con TS (BOE 2024 Anexo II): VMM máx. 2,5 pts · Total máx. 15 pts"
+        of_promo_interna:   "Oficiales — Promo Interna (Orden DEF/279/2024, Anexo III): VMM máx. 43 pts · VMA máx. 32 pts · PFC = VMM/2 + VMA",
+        of_directo_con_tit: "Oficiales — Ingreso Directo con titulación (Orden DEF/279/2024, Anexo II): VMM máx. 3 pts · VMA máx. 22 pts · Total máx. 25 pts · PFC = VMM + VMA",
+        of_directo_sin_tit: "Oficiales — Ingreso Directo sin titulación (Orden DEF/279/2024, Anexo I): Fórmula EvAU/CACRED + VMM (máx. 0,5 pts)",
+        cc_cambio_cuerpo: "CC — Cambio de Cuerpo/Escala (Orden DEF/2454/2011, Anexo II): VMM máx. 48 pts · VMA máx. 37 pts · Total máx. 85 pts · PFC = VMM + VMA",
+        cc_ingreso_directo: "CC — Ingreso Directo (Orden DEF/2454/2011, Anexo I): VMM máx. 3 pts · VMA máx. ~26 pts · Total máx. 29 pts · PFC = VMM + VMA",
+        sub_promo_interna: "Suboficiales — Promoción Interna (Orden DEF/278/2024, Anexo III): VMM máx. 57 pts · VMA máx. 35/21 pts · PFC = VMM + VMA",
+        sub_directo_sin_ts: "Suboficiales — Ingreso Directo sin TS (Orden DEF/278/2024, Anexo I): VMM máx. 0,5 pts · Total máx. 13,5 pts",
+        sub_directo_con_ts: "Suboficiales — Ingreso Directo con TS (Orden DEF/278/2024, Anexo II): VMM máx. 2,5 pts · Total máx. 15 pts"
     };
     let key = esc === "suboficial" ? "sub_" + proc : esc === "cuerpos_comunes" ? "cc_" + procCC : esc === "oficial" ? "of_" + getProcesoOf() : esc;
     $("resumen_proceso").textContent = resumenes[key] || "";
@@ -990,6 +1022,19 @@ function actualizarTodosLosPasos() {
     $("vma_sub_con_ts").style.display   = isDirCon ? "block" : "none";
     $("vma_sub_promo").style.display    = isPromo ? "block" : "none";
 
+    // ── Banner de apartados omitidos ──
+    const banner = $("banner_omitidos");
+    if (banner) {
+        const info = infoOmitidos();
+        if (info) {
+            banner.style.display = "block";
+            $("banner_omitidos_texto").innerHTML =
+                `En este proceso <b>no se valoran ${info.items}</b>, ya que no están contemplados en la normativa aplicable (<i>${info.norma}</i>). ${info.extra} Por ello, la calculadora omitirá automáticamente esos pasos.`;
+        } else {
+            banner.style.display = "none";
+        }
+    }
+
     // ── Paso 6: idiomas ──
     actualizarIdiomasStep6();
 }
@@ -1056,26 +1101,58 @@ function actualizarIdiomasStep6() {
 }
 
 // Navegación inteligente: los procesos de ingreso directo saltan recompensas e IPEC
+// Devuelve true si el proceso es de ingreso directo (no valora recompensas/misiones/IPEC)
+function esIngresoDirecto() {
+    const esc = getEscala(); const proc = getProceso();
+    const procCC = getProcesoCc(); const procOf = getProcesoOf();
+    return (esc === "suboficial" && (proc === "directo_sin_ts" || proc === "directo_con_ts"))
+        || (esc === "cuerpos_comunes" && procCC === "ingreso_directo")
+        || (esc === "oficial" && (procOf === "directo_con_tit" || procOf === "directo_sin_tit"));
+}
+
+// Devuelve la referencia normativa y los apartados que se omiten en cada proceso directo
+function normativaBase() {
+    const esc = getEscala();
+    if (esc === "oficial")    return "Orden DEF/279/2024 (Oficiales)";
+    if (esc === "suboficial") return "Orden DEF/278/2024 (Suboficiales)";
+    if (esc === "cuerpos_comunes") return "Anexos I y II de la Orden DEF/2454/2011, de 6 de septiembre (modificada por la Orden DEF/705/2016, de 5 de mayo, y la disposición adicional segunda de la Orden DEF/689/2012, de 30 de marzo)";
+    return "";
+}
+
+function infoOmitidos() {
+    const esc = getEscala(); const proc = getProceso();
+    const procCC = getProcesoCc(); const procOf = getProcesoOf();
+    if (esc === "oficial" && procOf === "directo_sin_tit")
+        return { norma: "Anexo I de la Orden DEF/279/2024 (ingreso directo sin titulación universitaria)", items: "recompensas, misiones e informes (IPEC)", extra: "Solo se valora el tiempo de servicios (VMM máx. 0,5 pts) dentro de la fórmula de nota de acceso." };
+    if (esc === "oficial" && procOf === "directo_con_tit")
+        return { norma: "Anexo II de la Orden DEF/279/2024 (ingreso directo con titulación universitaria)", items: "recompensas, misiones e informes (IPEC)", extra: "Solo se valora el tiempo de servicios (máx. 3 pts) como mérito militar." };
+    if (esc === "suboficial" && proc === "directo_sin_ts")
+        return { norma: "Anexo I de la Orden DEF/278/2024 (ingreso directo sin Técnico Superior)", items: "recompensas, misiones e informes (IPEC)", extra: "Solo se valora el tiempo de servicios (máx. 0,5 pts)." };
+    if (esc === "suboficial" && proc === "directo_con_ts")
+        return { norma: "Anexo II de la Orden DEF/278/2024 (ingreso directo con Técnico Superior)", items: "recompensas, misiones e informes (IPEC)", extra: "Solo se valora el tiempo de servicios (máx. 2,5 pts)." };
+    if (esc === "cuerpos_comunes" && procCC === "ingreso_directo")
+        return { norma: "Anexo I de la Orden DEF/2454/2011 (ingreso directo Cuerpos Comunes)", items: "recompensas, misiones e informes (IPEC)", extra: "Solo se valora el tiempo de servicios (máx. 3 pts)." };
+    return null;
+}
+
 function navDesdeStep2() {
-    const esc = getEscala(); const proc = getProceso(); const procCC = getProcesoCc();
-    const isDirecto = (esc === "suboficial" && (proc === "directo_sin_ts" || proc === "directo_con_ts"))
-                    || (esc === "cuerpos_comunes" && procCC === "ingreso_directo");
-    nextStep(isDirecto ? 5 : 3);
+    nextStep(esIngresoDirecto() ? 5 : 3);
 }
 function navAtrasStep5() {
-    const esc = getEscala(); const proc = getProceso(); const procCC = getProcesoCc();
-    const isDirecto = (esc === "suboficial" && (proc === "directo_sin_ts" || proc === "directo_con_ts"))
-                    || (esc === "cuerpos_comunes" && procCC === "ingreso_directo");
-    nextStep(isDirecto ? 2 : 4);
+    nextStep(esIngresoDirecto() ? 2 : 4);
 }
 function navDesdeStep5() {
-    const esc = getEscala(); const proc = getProceso(); const procCC = getProcesoCc();
-    const isDirecto = (esc === "suboficial" && (proc === "directo_sin_ts" || proc === "directo_con_ts"))
-                    || (esc === "cuerpos_comunes" && procCC === "ingreso_directo");
-    if (isDirecto) { calcularBaremo(); } else { nextStep(6); }
+    if (esIngresoDirecto()) { calcularBaremo(); } else { nextStep(6); }
 }
 function navAtrasStep6() {
     nextStep(5);
+}
+
+function toggleOfPromoVma() {
+    const v = $("of_promo_tipo_vma") ? $("of_promo_tipo_vma").value : "con_exig";
+    if ($("of_promo_conexig"))  $("of_promo_conexig").style.display  = v === "con_exig" ? "block" : "none";
+    if ($("of_promo_creditos")) $("of_promo_creditos").style.display = v === "sin_exig_cred" ? "block" : "none";
+    if ($("of_promo_sinexig"))  $("of_promo_sinexig").style.display  = v === "sin_exig" ? "block" : "none";
 }
 
 function toggleOfVia() {
@@ -1307,29 +1384,41 @@ function calcularBaremo() {
         vmm = Math.max(vmm, 0);
         desgVMM = `Tiempo ${pts_tiempo.toFixed(2)} + Mis ${pts_mis.toFixed(2)} + RecFAS ${recFAS.toFixed(2)} + RecGC ${recGC.toFixed(2)} + IPEC ${ipecPts.toFixed(2)}${ipecPenal ? " [−10 penal]" : ""}`;
 
-        // VMA según sub-proceso
+        // VMA según sub-proceso (Anexo III)
         const tipoVma = $("of_promo_tipo_vma") ? $("of_promo_tipo_vma").value : "con_exig";
-        const notaTit = val("nota_tit_of");
-        let ptsTit = 0;
-        if (tipoVma === "con_exig") {
-            ptsTit = notaTit >= 5 ? notaTit * 2 : 0;
-        } else if (tipoVma === "sin_exig_cred") {
-            // Créditos ECTS: el usuario introduce la puntuación calculada directamente (1,8-12)
-            ptsTit = Math.min(Math.max(notaTit, 0), 12);
-        } else {
-            // Sin exigencia: título vale 2 pts planos
-            ptsTit = notaTit >= 5 ? 2 : 0;
-        }
-        if (parseFloat($("master_of").value) === 1) ptsTit += 2;
-        if (parseFloat($("doctor_of").value) === 1) ptsTit += 2;
+
+        // Idiomas (común a los tres procesos, máx 8 pts)
         const ingVal = $("idioma_ingles").value;
         let ptsIng = ingVal === "c1" ? 3 : 0;
         const seg2 = $("idioma_segundo").value;
         let ptsSeg = seg2 === "c1" ? 2 : seg2 === "b2" ? 1 : 0;
         const ptsIdiomasTotal = Math.min(ptsIng + ptsSeg, 8);
+
+        let ptsAcad = 0;
+        let detAcad = "";
+        if (tipoVma === "con_exig") {
+            // Título exigido nota × 2 (10-20) + máster 2 + doctor 2
+            const notaTit = val("nota_tit_of");
+            let t = notaTit >= 5 ? Math.min(notaTit * 2, 20) : 0;
+            if (parseFloat($("master_of").value) === 1) t += 2;
+            if (parseFloat($("doctor_of").value) === 1) t += 2;
+            ptsAcad = t;
+            detAcad = `Título×2 + Máster/Doctor = ${t.toFixed(2)}`;
+        } else if (tipoVma === "sin_exig_cred") {
+            // Créditos ECTS (1,8-12). No máster/doctor.
+            ptsAcad = Math.min(Math.max(val("of_creditos_ects"), 0), 12);
+            detAcad = `Créditos ECTS = ${ptsAcad.toFixed(2)}`;
+        } else {
+            // Sin exigencia: acceso univ (1-2) + título plano (2). No máster/doctor.
+            const acceso = Math.min(Math.max(val("of_acceso_univ"), 0), 2);
+            const tituloP = parseFloat($("of_titulo_plano").value) || 0;
+            ptsAcad = acceso + tituloP;
+            detAcad = `Acceso univ ${acceso.toFixed(2)} + Título ${tituloP}`;
+        }
+
         const vmaMax = tipoVma === "con_exig" ? 32 : tipoVma === "sin_exig_cred" ? 20 : 12;
-        vma = Math.min(ptsTit + ptsIdiomasTotal, vmaMax);
-        desgVMA = `Título ${ptsTit.toFixed(2)} + Idiomas ${ptsIdiomasTotal.toFixed(2)} [VMA máx ${vmaMax}]`;
+        vma = Math.min(ptsAcad + ptsIdiomasTotal, vmaMax);
+        desgVMA = `${detAcad} + Idiomas ${ptsIdiomasTotal.toFixed(2)} [VMA máx ${vmaMax}]`;
     }
 
     // ══════════════════════════════════════════════════════
@@ -1458,8 +1547,12 @@ function calcularBaremo() {
     const fStr = isOf
         ? `PFC = VMM(${vmm.toFixed(3)})/2 + VMA(${vma.toFixed(3)}) = <b>${notaGlobal.toFixed(3)}</b>`
         : `PFC = VMM(${vmm.toFixed(3)}) + VMA(${vma.toFixed(3)}) = <b>${notaGlobal.toFixed(3)}</b>`;
+    const infoOm = infoOmitidos();
+    const avisoOmitidos = infoOm
+        ? `<br><span style="color:#0369a1"><b>ℹ️ Nota:</b> En este proceso no se valoran ${infoOm.items} (no contemplados en ${infoOm.norma}).</span>`
+        : "";
     $("desglose-detalle").innerHTML =
-        `<b>VMM:</b> ${desgVMM}<br><b>VMA:</b> ${desgVMA}<br><b>Fórmula:</b> ${fStr}<br><b>Vía competitiva:</b> ${viaCompetitiva}`;
+        `<b>VMM:</b> ${desgVMM}<br><b>VMA:</b> ${desgVMA}<br><b>Fórmula:</b> ${fStr}<br><b>Vía competitiva:</b> ${escHtml(viaCompetitiva)}<br><b>Normativa aplicable:</b> ${normativaBase()}${avisoOmitidos}`;
 
     nextStep(7);
 }
@@ -1488,45 +1581,6 @@ async function borrarMiRegistroDesdeListado() {
         leerBin().then(lista => renderTable(lista)).catch(e => alert("Error al recargar: " + e.message));
     } catch(e) {
         alert("Error: " + e.message);
-    }
-}
-
-async function borrarMiRegistro() {
-    const idBorrar = $("delete_id") ? $("delete_id").value.trim() : "";
-    if (!idBorrar) return alert("Introduce el NIO/ID del registro que quieres borrar.");
-    if (!/^[A-Za-z0-9]+$/.test(idBorrar)) return alert("El NIO/ID solo puede contener letras y números.");
-
-    const hash = hashId(idBorrar);
-    const btn  = $("btn-delete-self");
-
-    // Verificar primero que existe ese registro
-    const lista = await leerBin().catch(() => []);
-    if (!lista.some(u => u.hash === hash)) {
-        alert("No se encontró ningún registro con ese NIO/ID. Comprueba que lo has escrito correctamente.");
-        return;
-    }
-
-    if (!confirm("¿Confirmas que quieres borrar el registro asociado a ese NIO/ID? Esta acción no se puede deshacer.")) return;
-
-    btn.disabled = true;
-    btn.textContent = "Borrando...";
-    try {
-        const res = await fetch(API + "/registro/self", {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ hash })
-        });
-        if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            throw new Error(err.error || "HTTP " + res.status);
-        }
-        $("delete_id").value = "";
-        alert("Registro borrado correctamente. Ahora puedes publicar tu nota con el NIO/ID correcto.");
-    } catch(e) {
-        alert("Error: " + e.message);
-    } finally {
-        btn.disabled = false;
-        btn.textContent = "Borrar ese registro";
     }
 }
 
@@ -1721,7 +1775,7 @@ function renderAdmin(data, incidencias) {
             const proc = u.proceso ? `<br><small style="color:var(--muted)">${u.proceso.replace(/_/g," ")}</small>` : "";
             html += `<tr>
                 <td style="color:var(--muted)">${i+1}</td>
-                <td><span class="tag ${tc}">${tl}</span> <b>${esc(u.spec)}</b>${proc}</td>
+                <td><span class="tag ${tc}">${tl}</span> <b>${escHtml(u.spec)}</b>${proc}</td>
                 <td style="color:var(--primary);font-weight:800">${parseFloat(u.nota).toFixed(3)}</td>
                 <td><button onclick="borrarRegistro('${u.hash}')" style="background:#dc2626;color:white;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:.85rem">x</button></td>
             </tr>`;
@@ -1747,8 +1801,8 @@ function renderAdmin(data, incidencias) {
                     <div style="flex:1">
                         <span style="font-size:.72rem;background:#fee2e2;color:#dc2626;padding:2px 6px;border-radius:4px">${tipoLabel[inc.tipo]||inc.tipo}</span>
                         <span style="font-size:.72rem;color:var(--muted);margin-left:6px">${inc.fecha}</span>
-                        <p style="margin:6px 0 0;font-size:.88rem">${esc(inc.desc)}</p>
-                        ${yaRespondida ? `<div style="margin-top:8px;padding:8px;background:#dcfce7;border-radius:6px;font-size:.85rem"><b style="color:var(--secondary)">↳ Respuesta:</b> ${esc(inc.respuesta)}</div>` : ''}
+                        <p style="margin:6px 0 0;font-size:.88rem">${escHtml(inc.desc)}</p>
+                        ${yaRespondida ? `<div style="margin-top:8px;padding:8px;background:#dcfce7;border-radius:6px;font-size:.85rem"><b style="color:var(--secondary)">↳ Respuesta:</b> ${escHtml(inc.respuesta)}</div>` : ''}
                     </div>
                     <div style="display:flex;gap:6px;flex-shrink:0">
                         <button onclick="abrirResponder('${inc.id}')" style="background:var(--secondary);color:white;border:none;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:.8rem">
@@ -1805,8 +1859,8 @@ function renderAdmin(data, incidencias) {
             html += `<div style="border:1px solid #86efac;border-radius:8px;padding:12px;margin-bottom:10px;background:#f0fdf4">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
                     <div style="flex:1">
-                        <b style="color:var(--primary);font-size:.95rem">${esc(nov.titulo)}</b>
-                        <p style="margin:6px 0 0;font-size:.88rem">${esc(nov.contenido)}</p>
+                        <b style="color:var(--primary);font-size:.95rem">${escHtml(nov.titulo)}</b>
+                        <p style="margin:6px 0 0;font-size:.88rem">${escHtml(nov.contenido)}</p>
                         <span style="font-size:.72rem;color:var(--muted)">${nov.fecha}</span>
                     </div>
                     <button onclick="borrarNovedad('${nov.id}')" style="background:#6b7280;color:white;border:none;border-radius:6px;padding:5px 8px;cursor:pointer;font-size:.8rem;flex-shrink:0">✕</button>
@@ -1950,8 +2004,8 @@ async function cargarNovedades() {
             sorted.forEach(nov => {
                 html2 += `<div class="novedad-card" style="border-left:4px solid var(--secondary)">
                     <div style="font-size:.72rem;background:#dcfce7;color:var(--secondary);padding:2px 8px;border-radius:10px;display:inline-block;margin-bottom:8px;font-weight:600">Comunicado</div>
-                    <div style="font-size:1.05rem;font-weight:700;color:var(--primary);margin-bottom:8px">${esc(nov.titulo)}</div>
-                    <div style="font-size:.92rem;line-height:1.6;color:var(--text)">${esc(nov.contenido)}</div>
+                    <div style="font-size:1.05rem;font-weight:700;color:var(--primary);margin-bottom:8px">${escHtml(nov.titulo)}</div>
+                    <div style="font-size:.92rem;line-height:1.6;color:var(--text)">${escHtml(nov.contenido)}</div>
                 </div>`;
             });
         }
@@ -1964,9 +2018,9 @@ async function cargarNovedades() {
                 // Usar textoPublico (posiblemente censurado) si existe, si no el original
                 const textoMostrar = inc.textoPublico || inc.desc;
                 html2 += `<div class="novedad-card">
-                    <span class="tipo-tag">${esc(tipoLabel[inc.tipo]||inc.tipo)}</span>
-                    <div class="pregunta">${esc(textoMostrar)}</div>
-                    <div class="respuesta">${esc(inc.respuesta)}</div>
+                    <span class="tipo-tag">${escHtml(tipoLabel[inc.tipo]||inc.tipo)}</span>
+                    <div class="pregunta">${escHtml(textoMostrar)}</div>
+                    <div class="respuesta">${escHtml(inc.respuesta)}</div>
                 </div>`;
             });
         }
@@ -2054,9 +2108,9 @@ function renderTable(data) {
 
     // Barra de filtros
     let specOpts = `<option value="">— Todas las especialidades —</option>`;
-    allSpecs.forEach(s => { specOpts += `<option value="${esc(s)}" ${s===rankFilterSpec?"selected":""}>${esc(s)}</option>`; });
+    allSpecs.forEach(s => { specOpts += `<option value="${escHtml(s)}" ${s===rankFilterSpec?"selected":""}>${escHtml(s)}</option>`; });
     let viaOpts = `<option value="">— Todas las vías —</option>`;
-    allVias.forEach(v => { viaOpts += `<option value="${esc(v)}" ${v===rankFilterVia?'selected':''}>${esc(v)}</option>`; });
+    allVias.forEach(v => { viaOpts += `<option value="${escHtml(v)}" ${v===rankFilterVia?'selected':''}>${escHtml(v)}</option>`; });
 
     const totalMostrados = sorted.length;
     const totalGlobal    = data.length;
@@ -2089,11 +2143,11 @@ function renderTable(data) {
         const yoTag = isMe ? ' <span style="background:var(--secondary);color:white;padding:1px 7px;border-radius:10px;font-size:.7rem;font-weight:700;margin-left:4px">TÚ</span>' : '';
         const specsHtml = specList.map((s,si) => {
             const isFiltered = rankFilterSpec && s === rankFilterSpec;
-            return `<span style="${isFiltered?'font-weight:800;color:var(--primary)':''}">${si+1}. ${esc(s)}</span>`;
+            return `<span style="${isFiltered?'font-weight:800;color:var(--primary)':''}">${si+1}. ${escHtml(s)}</span>`;
         }).join('<br>');
         const viaLabel = u._via || deriveVia(u);
         const viaIsInferred = !u.via && viaLabel !== "Sin clasificar";
-        const viaHtml = `<br><span style="font-size:.72rem;background:#f1f5f9;color:var(--muted);padding:1px 6px;border-radius:10px;display:inline-block;margin-top:3px${viaIsInferred?';font-style:italic':''}">${esc(viaLabel)}${viaIsInferred?' *':''}</span>`;
+        const viaHtml = `<br><span style="font-size:.72rem;background:#f1f5f9;color:var(--muted);padding:1px 6px;border-radius:10px;display:inline-block;margin-top:3px${viaIsInferred?';font-style:italic':''}">${escHtml(viaLabel)}${viaIsInferred?' *':''}</span>`;
         const isMyVia = rankFilterVia && viaLabel === rankFilterVia;
         const deleteBtn = isMe
             ? `<br><button onclick="borrarMiRegistroDesdeListado()" style="margin-top:6px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:.75rem;font-weight:600">🗑 Borrar mi registro</button>`
@@ -2263,6 +2317,7 @@ const ESPECIALIDADES = {
 // Inicializar
 onEscalaChange();
 togglePromoTS();
+toggleOfPromoVma();
 initSpecList();
 
 
