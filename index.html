@@ -336,11 +336,14 @@
                 </div>
                 <div class="input-group">
                     <label>¿Misma especialidad fundamental como 1.ª preferencia?</label>
-                    <small>5 pts si la especialidad de procedencia coincide con la 1.ª plaza solicitada.</small>
+                    <small>5 pts si la especialidad de procedencia coincide con la 1.ª plaza solicitada. <b>Excepción: en el Ejército del Aire y del Espacio este mérito NO puntúa</b>, por lo que se ignora si tu 1.ª preferencia es del Aire (AyE).</small>
                     <select id="esp_fundamental">
                         <option value="0">No / No aplica</option>
                         <option value="5">Sí (5 pts)</option>
                     </select>
+                    <div id="aviso_esp_aire" style="display:none;margin-top:6px;font-size:.8rem;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:6px 10px">
+                        ⚠️ Tu 1.ª preferencia es del Ejército del Aire y del Espacio: este mérito no se aplicará (no contemplado para AyE).
+                    </div>
                 </div>
             </div>
         </div>
@@ -1035,6 +1038,9 @@ function actualizarTodosLosPasos() {
         }
     }
 
+    // ── Aviso especialidad fundamental (Aire) ──
+    if (typeof actualizarAvisoEspAire === "function") actualizarAvisoEspAire();
+
     // ── Paso 6: idiomas ──
     actualizarIdiomasStep6();
 }
@@ -1259,8 +1265,10 @@ function calcularBaremo() {
         const mediaIPEC = (nota2 > 0 && !soloUno) ? (nota1 + nota2) / 2 : nota1;
         const ipecPts = Math.min(mediaIPEC * 1.5, 15);
         const ipecPenal = parseFloat($("ipec_penal_sub").value) === 1;
-        // f) Especialidad fundamental
-        const ptsEsp = parseFloat($("esp_fundamental").value) || 0;
+        // f) Especialidad fundamental — NO puntúa en el Ejército del Aire y del Espacio
+        const primeraSpec = getSpecsSeleccionadas()[0] || "";
+        const esPrimeraAire = primeraSpec.startsWith("AyE");
+        const ptsEsp = esPrimeraAire ? 0 : (parseFloat($("esp_fundamental").value) || 0);
         // g) Empleo
         const ptsEmpleo = parseFloat($("empleo_sub").value) || 0;
 
@@ -2333,7 +2341,7 @@ function getOpcionesEspecialidad() {
 
 function buildSpecSelect(index) {
     const opts = getOpcionesEspecialidad();
-    let s = `<select style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.9rem">`;
+    let s = `<select onchange="actualizarAvisoEspAire()" style="width:100%;padding:9px;border:1px solid var(--border);border-radius:8px;font-size:.9rem">`;
     s += `<option value="">-- Selecciona especialidad --</option>`;
     opts.forEach(o => { s += `<option value="${o}">${o}</option>`; });
     s += `</select>`;
@@ -2370,6 +2378,15 @@ function renumberSpecs() {
     $("spec-list").querySelectorAll(".spec-row").forEach((row, i) => {
         row.querySelector(".num").textContent = i + 1;
     });
+    actualizarAvisoEspAire();
+}
+
+// Muestra el aviso si la 1.ª especialidad es del Aire (solo relevante en suboficiales promo interna)
+function actualizarAvisoEspAire() {
+    const aviso = $("aviso_esp_aire");
+    if (!aviso) return;
+    const primera = getSpecsSeleccionadas()[0] || "";
+    aviso.style.display = primera.startsWith("AyE") ? "block" : "none";
 }
 
 function getSpecsSeleccionadas() {
