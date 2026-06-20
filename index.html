@@ -74,6 +74,61 @@
         .novedad-card .respuesta { background:#f0fdf4; border-left:4px solid var(--secondary); padding:12px 14px; border-radius:6px; font-size:.9rem; color:var(--text); line-height:1.6; }
         .novedad-card .respuesta::before { content:"↳ Respuesta: "; font-weight:700; color:var(--secondary); }
         .novedad-card .fecha-tag { font-size:.72rem; color:var(--muted); margin-top:8px; }
+
+        /* ════════ RESPONSIVE / MÓVIL ════════ */
+        @media (max-width: 600px) {
+            body { padding: 0 !important; }
+            .app-container { max-width: 100%; }
+            .card { padding: 18px 14px; border-radius: 12px; box-shadow: 0 4px 12px -4px rgba(0,0,0,.12); }
+            h1 { font-size: 1.4rem !important; }
+            h2 { font-size: 1.2rem !important; }
+            h3 { font-size: 1.05rem !important; }
+
+            /* Tablas: reducir padding y fuente */
+            table { font-size: .82rem; }
+            th, td { padding: 8px 6px; }
+            th { font-size: .78rem; }
+
+            /* Grids de 2 columnas pasan a 1 en móvil */
+            .grid-2 { grid-template-columns: 1fr !important; }
+
+            /* Barra superior apilada */
+            .top-bar { flex-direction: column; align-items: stretch; }
+            .top-bar-left { width: 100%; }
+            .btn-top { flex: 1; text-align: center; }
+
+            /* Navegación de pestañas con scroll horizontal */
+            .main-nav { overflow-x: auto; flex-wrap: nowrap !important; -webkit-overflow-scrolling: touch; }
+            .nav-btn { white-space: nowrap; flex-shrink: 0; font-size: .82rem; padding: 8px 12px; }
+
+            /* Barra de filtros del escalafón apilada */
+            .sort-bar { flex-direction: column; align-items: stretch; }
+            .sort-bar select, .sort-bar .sort-btn { width: 100%; }
+
+            /* Botones de pasos */
+            .btn { padding: 12px 14px; font-size: .92rem; }
+            .btn-group { flex-direction: column; gap: 8px; }
+            .btn-group .btn { width: 100%; }
+
+            /* Modales ocupan casi toda la pantalla */
+            .modal-box { padding: 20px 16px; max-height: 92vh; }
+
+            /* Inputs más grandes para tocar mejor */
+            input, select, textarea { font-size: 16px !important; } /* evita zoom en iOS */
+
+            /* Especialidades */
+            .spec-row { flex-wrap: wrap; }
+            .spec-row select { min-width: 0; }
+
+            /* Tabla del escalafón: la 1.ª columna (#) más estrecha */
+            table th:first-child, table td:first-child { width: 28px; padding-left: 4px; padding-right: 4px; }
+        }
+
+        @media (max-width: 380px) {
+            .card { padding: 14px 10px; }
+            table { font-size: .76rem; }
+            .tag { font-size: .62rem; padding: 1px 5px; }
+        }
     </style>
 </head>
 <body>
@@ -1512,8 +1567,6 @@ function calcularBaremo() {
         if (bachVal === maxVal && bachVal > 0) viaLabel = "Vía A (Bachillerato)";
         else if (gmVal === maxVal && gmVal > 0) viaLabel = "Vía B (Técnico Grado Medio)";
         viaCompetitiva = "Suboficiales · Promo Interna · Sin TS · " + viaLabel;
-    } else if (isDirCon) {
-        viaCompetitiva = "Suboficiales · Directo · Con exigencia TS";
     } else if (proc === "directo_sin_ts" && isSub) {
         // Ingreso directo sub sin TS
         const bVal = val("bach_nota") >= 5 ? val("bach_nota") * (parseFloat($("bach_modalidad").value)||1) : 0;
@@ -2124,8 +2177,12 @@ const SPEC_ALIASES = {
     "AyE — Sistemas de Información, Comunicaciones y Ciberdefensa": "AyE — Sistemas de Información, Comunicaciones y Ciberdefensa (CYB)",
     "Sistemas de Información, Comunicaciones y Ciberdefensa":       "AyE — Sistemas de Información, Comunicaciones y Ciberdefensa (CYB)",
     "Ciberdefensa (CYB)":                                           "AyE — Sistemas de Información, Comunicaciones y Ciberdefensa (CYB)",
-    "AyE — Ciberdefensa (CYB) MCCE":                               "AyE — Ciberdefensa (CYB) MCCE [solo con titulación]",
-    "Ciberdefensa MCCE":                                            "AyE — Ciberdefensa (CYB) MCCE [solo con titulación]",
+    "AyE — Ciberdefensa (CYB) MCCE":                               "AyE — Ciberdefensa MCCE (Mando Conjunto del Ciberespacio)",
+    "AyE — Ciberdefensa (CYB) MCCE [solo con titulación]":        "AyE — Ciberdefensa MCCE (Mando Conjunto del Ciberespacio)",
+    "Ciberdefensa MCCE":                                            "AyE — Ciberdefensa MCCE (Mando Conjunto del Ciberespacio)",
+    "Ciberdefensa MCCE (Mando Conjunto del Ciberespacio)":         "AyE — Ciberdefensa MCCE (Mando Conjunto del Ciberespacio)",
+    "AyE — Ciberdefensa MCCE (Mando Conjunto del Ciberespacio)":   "AyE — Ciberdefensa MCCE (Mando Conjunto del Ciberespacio)",
+    "AyE — General/Ciberespacio MCCE (Mando Conjunto del Ciberespacio)": "AyE — Ciberdefensa MCCE (Mando Conjunto del Ciberespacio)",
     "AyE — Administración":                                         "AyE — Administración (AYF)",
     "Administración (AYF)":                                         "AyE — Administración (AYF)",
     "AyE — Protección de la Fuerza y Apoyo a las Operaciones":      "AyE — Protección de la Fuerza y Apoyo a las Operaciones (PAO)",
@@ -2345,7 +2402,7 @@ const ESPECIALIDADES = {
             "AyE — Control Aéreo (CAE)",
             "AyE — Sistemas de Información, Comunicaciones y Ciberdefensa (CYB)",
             "AyE — Administración (AYF)",
-            "AyE — Ciberdefensa (CYB) MCCE [solo con titulación]"
+            "AyE — Ciberdefensa MCCE (Mando Conjunto del Ciberespacio)"
         ],
         directo_sin_ts: [
             "ET — Infantería",
