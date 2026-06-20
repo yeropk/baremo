@@ -2071,6 +2071,82 @@ let rankSortMode = "nota";
 let rankFilterSpec = "";
 let rankFilterVia  = "";
 
+// ══ Normalización de nombres de especialidades (registros históricos) ══════
+// Unifica nombres antiguos con los canónicos actuales para el filtrado
+const SPEC_ALIASES = {
+    // Suboficiales ET
+    "Infantería":                            "ET — Infantería",
+    "ET - Infantería":                       "ET — Infantería",
+    "Transmisiones":                         "ET — Transmisiones",
+    "ET - Transmisiones":                    "ET — Transmisiones",
+    "Transmisiones (MECE)":                  "ET — Transmisiones (MECE) [solo con titulación]",
+    "ET - Transmisiones (MECE)":             "ET — Transmisiones (MECE) [solo con titulación]",
+    "Electrónica y Telecomunicaciones":      "ET — Electrónica y Telecomunicaciones",
+    "ET - Electrónica y Telecomunicaciones": "ET — Electrónica y Telecomunicaciones",
+    "Mantenimiento y Montaje de Equipos":    "ET — Mantenimiento y Montaje de Equipos",
+    "Mantenimiento de Aeronaves":            "ET — Mantenimiento de Aeronaves",
+    "ET - Mantenimiento de Aeronaves":       "ET — Mantenimiento de Aeronaves",
+    "Mantenimiento de Armamento y Material": "ET — Mantenimiento de Armamento y Material",
+    "Informática":                           "ET — Informática",
+    "ET - Informática":                      "ET — Informática",
+    "Informática (MCCE)":                    "ET — Informática (MCCE) [solo con titulación]",
+    "Automoción":                            "ET — Automoción",
+    "ET - Automoción":                       "ET — Automoción",
+    "Caballería":                            "ET — Caballería",
+    "Artillería":                            "ET — Artillería",
+    "Ingenieros":                            "ET — Ingenieros",
+    // Suboficiales Armada CG
+    "Armada CG — Comunicaciones y Sistemas de Información": "Armada CG — Comunicaciones y Sistemas de Información",
+    "Comunicaciones y Sistemas de Información":             "Armada CG — Comunicaciones y Sistemas de Información",
+    "Armada - Comunicaciones y Sistemas de Información":    "Armada CG — Comunicaciones y Sistemas de Información",
+    "Sistemas":                                              "Armada CG — Sistemas",
+    "Armada CG - Sistemas":                                  "Armada CG — Sistemas",
+    "Administración":                                        "Armada CG — Administración",
+    "Maniobra y Navegación":                                 "Armada CG — Maniobra y Navegación",
+    "Energía y Propulsión":                                  "Armada CG — Energía y Propulsión",
+    "Alojamiento y Restauración":                            "Armada CG — Alojamiento y Restauración",
+    "Armas":                                                 "Armada CG — Armas",
+    // Suboficiales Armada IM
+    "Infantería de Marina":    "Armada IM — Infantería de Marina",
+    "Armada IM - Infantería de Marina": "Armada IM — Infantería de Marina",
+    // Suboficiales AyE
+    "AyE — Mantenimiento Aeronáutico":                       "AyE — Mantenimiento Aeronáutico (MER)",
+    "AyE - Mantenimiento Aeronáutico":                       "AyE — Mantenimiento Aeronáutico (MER)",
+    "Mantenimiento Aeronáutico":                             "AyE — Mantenimiento Aeronáutico (MER)",
+    "Mantenimiento Aeronáutico (MER)":                       "AyE — Mantenimiento Aeronáutico (MER)",
+    "AyE — Mantenimiento Electrónico":                       "AyE — Mantenimiento Electrónico (ELC)",
+    "Mantenimiento Electrónico":                             "AyE — Mantenimiento Electrónico (ELC)",
+    "Mantenimiento Electrónico (ELC)":                       "AyE — Mantenimiento Electrónico (ELC)",
+    "AyE — Control Aéreo":                                   "AyE — Control Aéreo (CAE)",
+    "AyE - Control Aéreo":                                   "AyE — Control Aéreo (CAE)",
+    "Control Aéreo":                                         "AyE — Control Aéreo (CAE)",
+    "Control Aéreo (CAE)":                                   "AyE — Control Aéreo (CAE)",
+    "AyE — Sistemas de Información, Comunicaciones y Ciberdefensa": "AyE — Sistemas de Información, Comunicaciones y Ciberdefensa (CYB)",
+    "Sistemas de Información, Comunicaciones y Ciberdefensa":       "AyE — Sistemas de Información, Comunicaciones y Ciberdefensa (CYB)",
+    "Ciberdefensa (CYB)":                                           "AyE — Sistemas de Información, Comunicaciones y Ciberdefensa (CYB)",
+    "AyE — Ciberdefensa (CYB) MCCE":                               "AyE — Ciberdefensa (CYB) MCCE [solo con titulación]",
+    "Ciberdefensa MCCE":                                            "AyE — Ciberdefensa (CYB) MCCE [solo con titulación]",
+    "AyE — Administración":                                         "AyE — Administración (AYF)",
+    "Administración (AYF)":                                         "AyE — Administración (AYF)",
+    "AyE — Protección de la Fuerza y Apoyo a las Operaciones":      "AyE — Protección de la Fuerza y Apoyo a las Operaciones (PAO)",
+    "Protección de la Fuerza y Apoyo a las Operaciones":            "AyE — Protección de la Fuerza y Apoyo a las Operaciones (PAO)",
+};
+
+function normalizarSpec(s) {
+    if (!s) return s;
+    return SPEC_ALIASES[s.trim()] || s;
+}
+
+function normalizarSpecs(u) {
+    if (u.specs && u.specs.length > 0) {
+        return { ...u, specs: u.specs.map(normalizarSpec), spec: normalizarSpec(u.spec) };
+    }
+    if (u.spec) {
+        return { ...u, spec: normalizarSpec(u.spec), specs: [normalizarSpec(u.spec)] };
+    }
+    return u;
+}
+
 // Deduce la vía competitiva de registros antiguos que no la tienen guardada
 function deriveVia(u) {
     if (u.via) return u.via;
@@ -2097,8 +2173,11 @@ function renderTable(data) {
     const tagColor = { oficial:"tag-of", suboficial:"tag-sub", cuerpos_comunes:"tag-cc" };
     const tagLabel = { oficial:"OFICIAL", suboficial:"SUBOFICIAL", cuerpos_comunes:"CC" };
 
-    // Normalizar: añadir vía derivada a registros que no la tienen
-    const dataNorm = data.map(u => ({ ...u, _via: deriveVia(u) }));
+    // Normalizar: specs y vía derivada
+    const dataNorm = data.map(u => {
+        const un = normalizarSpecs(u);
+        return { ...un, _via: deriveVia(un) };
+    });
 
     // Recopilar especialidades y vías únicas
     const allSpecs = [...new Set(dataNorm.flatMap(u => u.specs || [u.spec]).filter(Boolean))].sort();
@@ -2160,9 +2239,23 @@ function renderTable(data) {
         const deleteBtn = isMe
             ? `<br><button onclick="borrarMiRegistroDesdeListado()" style="margin-top:6px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:.75rem;font-weight:600">🗑 Borrar mi registro</button>`
             : '';
+        const misOpciones = isMe ? (() => {
+            const via2  = u._via || deriveVia(u);
+            const specs2 = (u.specs && u.specs.length ? u.specs : [u.spec]).filter(Boolean);
+            const esInferida = !u.via;
+            return `<details style="margin-top:8px;font-size:.78rem;color:var(--muted)">
+                <summary style="cursor:pointer;font-weight:600;color:var(--primary)">📋 Ver mis opciones guardadas</summary>
+                <div style="margin-top:6px;padding:8px;background:#f8fafc;border-radius:6px;line-height:1.8">
+                    <b>Vía:</b> ${escHtml(via2)}${esInferida ? ' <em>(deducida)</em>' : ''}<br>
+                    <b>Especialidades:</b><br>
+                    ${specs2.map((s,i) => `&nbsp;&nbsp;${i+1}. ${escHtml(s)}`).join('<br>')}
+                    <br><span style="color:#b45309;font-size:.73rem">⚠️ Si algo es incorrecto, borra este registro y vuelve a calcular con los datos correctos.</span>
+                </div>
+            </details>`;
+        })() : '';
         html += `<tr style="${rowStyle}${isMyVia&&!isMe?'border-left:3px solid #94a3b8;':''}">
             <td style="color:var(--muted);font-weight:${isMe?'800':'400'}">${i+1}</td>
-            <td><span class="tag ${tc}">${tl}</span>${yoTag}${viaHtml}<br><small style="line-height:1.8">${specsHtml}</small>${deleteBtn}</td>
+            <td><span class="tag ${tc}">${tl}</span>${yoTag}${viaHtml}<br><small style="line-height:1.8">${specsHtml}</small>${deleteBtn}${misOpciones}</td>
             <td style="color:var(--primary);font-weight:800;font-size:1.1rem">${parseFloat(u.nota).toFixed(3)}</td>
         </tr>`;
     });
