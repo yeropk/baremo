@@ -2297,16 +2297,27 @@ function renderTable(data) {
             ? `<br><button onclick="borrarMiRegistroDesdeListado()" style="margin-top:6px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:.75rem;font-weight:600">🗑 Borrar mi registro</button>`
             : '';
         const misOpciones = isMe ? (() => {
-            const via2  = u._via || deriveVia(u);
-            const specs2 = (u.specs && u.specs.length ? u.specs : [u.spec]).filter(Boolean);
-            const esInferida = !u.via;
+            const via2   = u._via || deriveVia(u);
+            const specs2 = (u.specs && u.specs.length > 0 ? u.specs : [u.spec]).filter(Boolean);
+            // Detectar si los datos son completos o incompletos/deducidos
+            const viaDeducida  = !u.via;
+            const specsAntiguo = !u.specs || u.specs.length === 0; // solo tenía spec string
+            const hayProblema  = viaDeducida || specsAntiguo;
+
+            const avisoHtml = hayProblema ? `
+                <div style="margin-top:8px;padding:6px 10px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:.73rem;color:#b45309;line-height:1.5">
+                    ⚠️ ${viaDeducida ? 'La <b>vía competitiva</b> está deducida del proceso (puede no ser exacta). ' : ''}${specsAntiguo ? 'Las <b>especialidades</b> vienen de un registro antiguo. ' : ''}
+                    Borra este registro y vuelve a calcular para actualizarlo.
+                </div>` : '';
+
             return `<details style="margin-top:8px;font-size:.78rem;color:var(--muted)">
                 <summary style="cursor:pointer;font-weight:600;color:var(--primary)">📋 Ver mis opciones guardadas</summary>
                 <div style="margin-top:6px;padding:8px;background:#f8fafc;border-radius:6px;line-height:1.8">
-                    <b>Vía:</b> ${escHtml(via2)}${esInferida ? ' <em>(deducida)</em>' : ''}<br>
+                    <b>Vía:</b> ${escHtml(via2)}${viaDeducida ? ' <em style="color:var(--muted)">(deducida)</em>' : ' ✅'}<br>
                     <b>Especialidades:</b><br>
                     ${specs2.map((s,i) => `&nbsp;&nbsp;${i+1}. ${escHtml(s)}`).join('<br>')}
-                    <br><span style="color:#b45309;font-size:.73rem">⚠️ Si algo es incorrecto, borra este registro y vuelve a calcular con los datos correctos.</span>
+                    ${specsAntiguo ? '<em style="color:var(--muted)"> (registro antiguo)</em>' : ''}
+                    ${avisoHtml}
                 </div>
             </details>`;
         })() : '';
