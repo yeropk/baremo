@@ -1155,7 +1155,7 @@ function actualizarIdiomasStep6() {
             $("bloque_seg_idioma").style.display = "none";
         } else {
             // Promo interna: inglés C1/Filología = 3 pts, o perfil SLP detallado, + 2.º idioma
-            sel.innerHTML = '<option value="ninguno">Ninguno / Inferior a C1</option><option value="c1">C1 / Filología (3 pts)</option><option value="slp">Perfil SLP detallado (por destrezas)</option>';
+            sel.innerHTML = '<option value="ninguno">Ninguno / Inferior a C1</option><option value="c1">C1 / Filología (3 pts)</option><option value="slp">Personalizar mi perfil SLP (nivel por destreza)</option>';
             hint.textContent = "Oficiales Promo Interna: C1/Filología/SLP 3,3,3,3+ = 3 pts. El B2 no computa.";
             $("bloque_seg_idioma").style.display = "block";
             $("label_seg_idioma").textContent = "Segundo idioma de interés FAS:";
@@ -1240,7 +1240,7 @@ function navAtrasStep6() {
 }
 
 // ── Perfil SLP detallado (inglés, Oficiales Promo Interna) ──
-const SLP_NIVELES = ["1","2","2+","3","3+","4","4+","5"];
+const SLP_NIVELES = ["1","2","2+","3","3+","4"];
 
 function poblarSelectsSlp() {
     ["slp_co","slp_eo","slp_ce","slp_ee"].forEach(id => {
