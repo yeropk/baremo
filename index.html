@@ -849,7 +849,7 @@
     <div id="bloque_slp" style="display:none;">
         <div class="info-box" style="font-size:.82rem">
             <b>Perfil lingüístico SLP/STANAG (inglés):</b> introduce tu nivel en cada destreza.
-            Se suman <b>0,75 pts por cada grado superior a 2</b> y <b>0,375 pts por cada «+»</b>. Máx. del apartado idiomas: 8 pts.
+            Se suman <b>0,75 pts por cada grado superior a 2</b> y <b>0,375 pts por cada «+»</b> (un 2+ suma 0,375; solo el 2.2.2.2 exacto puntúa 0). Máx. del apartado idiomas: 8 pts.
         </div>
         <div class="grid-2">
             <div class="input-group">
@@ -1253,7 +1253,9 @@ function poblarSelectsSlp() {
     });
 }
 
-// Puntúa un nivel SLP: 0,75 por grado superior a 2, 0,375 por «+» (si base ≥ 2)
+// Puntúa un nivel SLP: 0,75 por cada grado superior a 2 y 0,375 por cada «+»
+// El baremo valora todo lo que supere el nivel 2. Un "2+" es superior a un "2"
+// pelado, por lo que su «+» SÍ suma 0,375 (la mitad de un grado completo).
 function puntuarNivelSlp(nivel) {
     const tienePlus = nivel.includes("+");
     const base = parseInt(nivel, 10); // "2+" -> 2, "3" -> 3
