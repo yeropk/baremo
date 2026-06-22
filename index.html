@@ -480,7 +480,8 @@
     <!-- ── OFICIALES — Promoción Interna (Anexo III) ── -->
     <div id="vma_of_promo">
         <div class="info-box">
-            <b>Oficiales — Promo Interna (Anexo III):</b> El cálculo de méritos académicos depende del tipo de proceso. VMA máx.: <b>32 pts</b> (con exigencia) / <b>20 pts</b> (sin exigencia con créditos) / <b>12 pts</b> (sin exigencia). Idiomas (máx. 8 pts) se valoran en el siguiente paso.
+            <b>Oficiales — Promo Interna (Anexo III):</b> El cálculo de méritos académicos depende del tipo de proceso. VMA máx.: <b>32 pts</b> (con exigencia) / <b>20 pts</b> (sin exigencia con créditos) / <b>12 pts</b> (sin exigencia). Idiomas (máx. 8 pts) se valoran en el siguiente paso.<br>
+            <span style="font-size:.82rem;color:#0369a1">ℹ️ En <b>"Sin exigencia"</b> se suman por separado el título (2 pts) <b>y</b> la nota de acceso/selectividad (1–2 pts). La opción de máster/doctor solo existe en <b>"Con exigencia"</b>.</span>
         </div>
         <div class="input-group">
             <label>Tipo de proceso:</label>
@@ -838,10 +839,37 @@
     <div class="input-group">
         <label>Nivel de Inglés:</label>
         <small id="hint_ingles">—</small>
-        <select id="idioma_ingles">
+        <select id="idioma_ingles" onchange="toggleSlpDetalle()">
             <option value="ninguno">Ninguno</option>
             <option value="c1">C1 / Filología / SLP 3,3,3,3+</option>
         </select>
+    </div>
+
+    <!-- Perfil SLP detallado (solo Oficiales Promo Interna) -->
+    <div id="bloque_slp" style="display:none;">
+        <div class="info-box" style="font-size:.82rem">
+            <b>Perfil lingüístico SLP/STANAG (inglés):</b> introduce tu nivel en cada destreza.
+            Se suman <b>0,75 pts por cada grado superior a 2</b> y <b>0,375 pts por cada «+»</b>. Máx. del apartado idiomas: 8 pts.
+        </div>
+        <div class="grid-2">
+            <div class="input-group">
+                <label>Comprensión oral (escuchar):</label>
+                <select class="slp-skill" id="slp_co"></select>
+            </div>
+            <div class="input-group">
+                <label>Expresión oral (hablar):</label>
+                <select class="slp-skill" id="slp_eo"></select>
+            </div>
+            <div class="input-group">
+                <label>Comprensión escrita (leer):</label>
+                <select class="slp-skill" id="slp_ce"></select>
+            </div>
+            <div class="input-group">
+                <label>Expresión escrita (escribir):</label>
+                <select class="slp-skill" id="slp_ee"></select>
+            </div>
+        </div>
+        <div class="info-box" id="slp_preview" style="background:#f0fdf4;border-color:#86efac">SLP inglés: 0,00 pts</div>
     </div>
 
     <!-- Segundo idioma: Oficiales + Suboficiales Promo Interna -->
@@ -1095,6 +1123,8 @@ function actualizarTodosLosPasos() {
 
     // ── Aviso especialidad fundamental (Aire) ──
     if (typeof actualizarAvisoEspAire === "function") actualizarAvisoEspAire();
+    // ── Ocultar bloque SLP si el selector no está en modo SLP ──
+    if (typeof toggleSlpDetalle === "function") toggleSlpDetalle();
 
     // ── Paso 6: idiomas ──
     actualizarIdiomasStep6();
@@ -1124,8 +1154,8 @@ function actualizarIdiomasStep6() {
             hint.textContent = "El Anexo I no incluye méritos por idiomas; la puntuación se calcula con la fórmula EvAU/CACRED.";
             $("bloque_seg_idioma").style.display = "none";
         } else {
-            // Promo interna: inglés C1 = 3 pts, SLP, 2.º idioma
-            sel.innerHTML = '<option value="ninguno">Ninguno / Inferior a C1</option><option value="c1">C1 / Filología / SLP 3,3,3,3+ (3 pts)</option>';
+            // Promo interna: inglés C1/Filología = 3 pts, o perfil SLP detallado, + 2.º idioma
+            sel.innerHTML = '<option value="ninguno">Ninguno / Inferior a C1</option><option value="c1">C1 / Filología (3 pts)</option><option value="slp">Perfil SLP detallado (por destrezas)</option>';
             hint.textContent = "Oficiales Promo Interna: C1/Filología/SLP 3,3,3,3+ = 3 pts. El B2 no computa.";
             $("bloque_seg_idioma").style.display = "block";
             $("label_seg_idioma").textContent = "Segundo idioma de interés FAS:";
@@ -1207,6 +1237,57 @@ function navDesdeStep5() {
 }
 function navAtrasStep6() {
     nextStep(5);
+}
+
+// ── Perfil SLP detallado (inglés, Oficiales Promo Interna) ──
+const SLP_NIVELES = ["1","2","2+","3","3+","4","4+","5"];
+
+function poblarSelectsSlp() {
+    ["slp_co","slp_eo","slp_ce","slp_ee"].forEach(id => {
+        const el = $(id);
+        if (el && el.options.length === 0) {
+            el.innerHTML = SLP_NIVELES.map(n => `<option value="${n}">${n}</option>`).join("");
+            el.value = "2";
+            el.onchange = actualizarPreviewSlp;
+        }
+    });
+}
+
+// Puntúa un nivel SLP: 0,75 por grado superior a 2, 0,375 por «+» (si base ≥ 2)
+function puntuarNivelSlp(nivel) {
+    const tienePlus = nivel.includes("+");
+    const base = parseInt(nivel, 10); // "2+" -> 2, "3" -> 3
+    let pts = 0;
+    if (base > 2) pts += 0.75 * (base - 2);
+    if (tienePlus && base >= 2) pts += 0.375;
+    return pts;
+}
+
+function calcularSlpIngles() {
+    let total = 0;
+    ["slp_co","slp_eo","slp_ce","slp_ee"].forEach(id => {
+        const el = $(id);
+        if (el && el.value) total += puntuarNivelSlp(el.value);
+    });
+    return total;
+}
+
+function actualizarPreviewSlp() {
+    const p = $("slp_preview");
+    if (p) p.textContent = `SLP inglés: ${calcularSlpIngles().toFixed(3)} pts (se aplica el tope de 8 pts del apartado idiomas)`;
+}
+
+function toggleSlpDetalle() {
+    const sel = $("idioma_ingles");
+    const bloque = $("bloque_slp");
+    if (!sel || !bloque) return;
+    if (sel.value === "slp") {
+        poblarSelectsSlp();
+        bloque.style.display = "block";
+        actualizarPreviewSlp();
+    } else {
+        bloque.style.display = "none";
+    }
 }
 
 function toggleOfPromoVma() {
@@ -1452,7 +1533,7 @@ function calcularBaremo() {
 
         // Idiomas (común a los tres procesos, máx 8 pts)
         const ingVal = $("idioma_ingles").value;
-        let ptsIng = ingVal === "c1" ? 3 : 0;
+        let ptsIng = ingVal === "c1" ? 3 : ingVal === "slp" ? calcularSlpIngles() : 0;
         const seg2 = $("idioma_segundo").value;
         let ptsSeg = seg2 === "c1" ? 2 : seg2 === "b2" ? 1 : 0;
         const ptsIdiomasTotal = Math.min(ptsIng + ptsSeg, 8);
